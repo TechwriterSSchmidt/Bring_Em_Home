@@ -429,18 +429,46 @@ void setup() {
 
     u8g2.clearBuffer();
     
-    // Splash Screen
-    u8g2.drawHLine(10, 40, 108);
+    // Boot Logo (3 Seconds)
+    u8g2.clearBuffer();
     
+    // Draw House Icon
+    int cx = 64;
+    int cy = 50;
+    
+    // Roof
+    u8g2.drawLine(cx-24, cy, cx, cy-24);
+    u8g2.drawLine(cx, cy-24, cx+24, cy);
+    u8g2.drawLine(cx-24, cy, cx+24, cy);
+    
+    // Body
+    u8g2.drawFrame(cx-18, cy, 36, 28);
+    
+    // Door
+    u8g2.drawBox(cx-6, cy+12, 12, 16);
+    
+    // Chimney
+    u8g2.drawBox(cx+12, cy-20, 6, 12);
+    
+    // Smoke
+    u8g2.drawDisc(cx+22, cy-24, 2);
+    u8g2.drawDisc(cx+26, cy-30, 3);
+
+    // Text
     u8g2.setFont(u8g2_font_ncenB10_tr);
-    u8g2.drawStr(15, 60, "Bring Em");
-    u8g2.drawStr(35, 80, "Home");
+    const char* title = "Bring Em Home";
+    int w = u8g2.getStrWidth(title);
+    u8g2.setCursor((SCREEN_WIDTH - w) / 2, 105);
+    u8g2.print(title);
     
-    u8g2.drawHLine(10, 90, 108);
+    u8g2.setFont(u8g2_font_5x7_tr);
+    const char* sub = "v1.0 - Ready";
+    w = u8g2.getStrWidth(sub);
+    u8g2.setCursor((SCREEN_WIDTH - w) / 2, 120);
+    u8g2.print(sub);
     
-    u8g2.setFont(u8g2_font_6x10_tr);
-    u8g2.drawStr(20, 110, "Waiting for GPS...");
     u8g2.sendBuffer();
+    delay(3000);
 }
 
 void loop() {
@@ -719,98 +747,140 @@ void loop() {
             
             u8g2.clearBuffer();
             int w = 0;
+
+            // --- SOS MODE ---
+            if (isSOSActive) {
+                // Huge SOS Display
+                u8g2.setFont(u8g2_font_ncenB14_tr);
+                const char* title = "SOS ACTIVE";
+                w = u8g2.getStrWidth(title);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 20);
+                u8g2.print(title);
+
+                // Countdown
+                int secToNext = (LORA_TX_INTERVAL - (millis() - lastLoRaTx)) / 1000;
+                if (secToNext < 0) secToNext = 0;
+                
+                u8g2.setFont(u8g2_font_logisoso42_tn);
+                String cntStr = String(secToNext);
+                w = u8g2.getStrWidth(cntStr.c_str());
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 80);
+                u8g2.print(cntStr);
+
+                // Footer info
+                u8g2.setFont(u8g2_font_6x10_tr);
+                const char* sub = "Sending Location...";
+                w = u8g2.getStrWidth(sub);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 110);
+                u8g2.print(sub);
+
+                u8g2.sendBuffer();
+                return; // Skip normal display
+            }
             
             // --- Header ---
             // Top Line
             u8g2.drawHLine(0, 15, 128);
-            
-            // Status Icons (Top Left)
             u8g2.setFont(u8g2_font_5x7_tr);
-            u8g2.setCursor(0, 0);
-            if (isFlashlightOn) u8g2.print("L ");
-            if (isSOSActive) {
-                u8g2.print("SOS ");
-                // Countdown for next LoRa TX
-                int secToNext = (LORA_TX_INTERVAL - (millis() - lastLoRaTx)) / 1000;
-                if (secToNext < 0) secToNext = 0;
-                u8g2.print(secToNext);
-            }
 
-            // Mode Title (Centered)
-            if (!isSOSActive) {
-                u8g2.setFont(u8g2_font_6x12_tr);
-                String title = (currentMode == MODE_EXPLORE) ? "EXPLORER" : "BRING ME HOME!";
-                w = u8g2.getStrWidth(title.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 2);
-                u8g2.print(title);
-            }
+            // 1. Battery (Left)
+            u8g2.setCursor(0, 10);
+            u8g2.print("Bat:");
+            u8g2.print(getBatteryPercent());
+            u8g2.print("%");
 
-            // GPS Signal Bar (Top Right)
+            // 2. Compass (Center)
+            String compStr = "Bad";
+            if (mag == 3) compStr = "Precise";
+            else if (mag == 2) compStr = "Ok";
+            else if (mag == 1) compStr = "Low";
+            
+            String compDisp = "Comp:" + compStr;
+            w = u8g2.getStrWidth(compDisp.c_str());
+            u8g2.setCursor((128 - w) / 2, 10);
+            u8g2.print(compDisp);
+
+            // 3. SAT (Right) - 4 Bars
             int sats = gps.satellites.value();
             int bars = 0;
             if (gps.location.isValid()) {
-                if (sats >= 6) bars = 5;
-                else if (sats >= 5) bars = 4;
-                else if (sats >= 4) bars = 3;
-                else if (sats >= 3) bars = 2;
+                if (sats >= 6) bars = 4;
+                else if (sats >= 5) bars = 3;
+                else if (sats >= 4) bars = 2;
                 else bars = 1;
             }
             
-            // Draw Bars
-            for (int i=0; i<5; i++) {
-                int h = (i+1) * 2;
+            // Draw 4 Bars (Right aligned)
+            int startX = 128 - (4 * 4); 
+            for (int i=0; i<4; i++) {
+                int h = (i+1) * 2 + 2; // 4, 6, 8, 10
                 if (i < bars) {
-                    u8g2.drawBox(110 + (i*3), 12-h, 2, h);
+                    u8g2.drawBox(startX + (i*4), 14-h, 3, h);
                 } else {
-                    u8g2.drawFrame(110 + (i*3), 12-h, 2, h);
+                    u8g2.drawFrame(startX + (i*4), 14-h, 3, h);
                 }
             }
-
-            // Battery (Left of Sats)
-            u8g2.setFont(u8g2_font_5x7_tr);
-            u8g2.setCursor(85, 0);
-            u8g2.print(getBatteryPercent());
-            u8g2.print("%");
 
             // --- Main Content ---
             
             // If NO GPS, show Satellite Dish Animation
             if (!gps.location.isValid()) {
-                int cx = SCREEN_WIDTH / 2;
-                int cy = 64;
+                // Animation Timer
+                static int animPhase = 0;
+                static unsigned long lastAnim = 0;
+                if (millis() - lastAnim > 300) {
+                    animPhase = (animPhase + 1) % 4;
+                    lastAnim = millis();
+                }
+
+                int cx = 40; // Left side
+                int cy = 64; // Vertical Center
+
+                // --- Dish Construction (Facing Right) ---
                 
-                // Dish Base
-                u8g2.drawLine(cx-10, cy+10, cx+10, cy+10);
-                u8g2.drawLine(cx, cy+10, cx, cy+20);
-                u8g2.drawLine(cx-5, cy+20, cx+5, cy+20);
+                // 1. Base (Stand)
+                u8g2.setDrawColor(1);
+                u8g2.drawTriangle(cx-10, cy+25, cx+10, cy+25, cx, cy+10); // Triangle base
+                u8g2.drawBox(cx-15, cy+25, 30, 4); // Footer
+
+                // 2. Dish Body (Crescent)
+                // Draw large filled circle (Left Half)
+                u8g2.drawDisc(cx, cy, 22, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_LOWER_LEFT);
+                // Erase inner part to make it a bowl
+                u8g2.setDrawColor(0);
+                u8g2.drawDisc(cx+6, cy, 22, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_LOWER_LEFT);
+                u8g2.setDrawColor(1);
+
+                // 3. LNB Arm & Head
+                u8g2.drawLine(cx, cy, cx+20, cy); // Arm
+                u8g2.drawDisc(cx+20, cy, 4);      // LNB Head
+
+                // 4. Waves (Animated)
+                int wx = cx + 20;
+                int wy = cy;
                 
-                // Dish Curve (Semi-circle pointing up-right)
-                // Simple approximation with lines
-                u8g2.drawLine(cx-10, cy+10, cx-15, cy-5);
-                u8g2.drawLine(cx-15, cy-5, cx-5, cy-15);
-                u8g2.drawLine(cx-5, cy-15, cx+10, cy+10); // Chord
-                
-                // Antenna
-                u8g2.drawLine(cx-5, cy+5, cx+5, cy-5);
-                u8g2.drawDisc(cx+5, cy-5, 2); // LNB
-                
-                // Animated Waves
-                int frame = (millis() / 300) % 4;
-                if (frame >= 1) u8g2.drawCircle(cx+5, cy-5, 8, U8G2_DRAW_UPPER_RIGHT);
-                if (frame >= 2) u8g2.drawCircle(cx+5, cy-5, 14, U8G2_DRAW_UPPER_RIGHT);
-                if (frame >= 3) u8g2.drawCircle(cx+5, cy-5, 20, U8G2_DRAW_UPPER_RIGHT);
+                // Wave 1
+                if (animPhase >= 1) {
+                    u8g2.drawCircle(wx, wy, 10, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
+                    u8g2.drawCircle(wx, wy, 11, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
+                }
+                // Wave 2
+                if (animPhase >= 2) {
+                    u8g2.drawCircle(wx, wy, 22, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
+                    u8g2.drawCircle(wx, wy, 23, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
+                }
+                // Wave 3
+                if (animPhase >= 3) {
+                    u8g2.drawCircle(wx, wy, 34, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
+                    u8g2.drawCircle(wx, wy, 35, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
+                }
                 
                 u8g2.setFont(u8g2_font_6x10_tr);
                 const char* txt = "Searching...";
                 w = u8g2.getStrWidth(txt);
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 100);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 115);
                 u8g2.print(txt);
                 
-                // Calibration (Bottom Left)
-                u8g2.setFont(u8g2_font_5x7_tr);
-                u8g2.setCursor(0, 120);
-                u8g2.printf("M:%d", mag);
-
                 u8g2.sendBuffer();
                 return; // Skip rest of drawing
             }
@@ -899,11 +969,6 @@ void loop() {
                     u8g2.drawStr(25, 110, "WAITING GPS");
                  }
             }
-
-            // Calibration (Bottom Left)
-            u8g2.setFont(u8g2_font_5x7_tr);
-            u8g2.setCursor(0, 120);
-            u8g2.printf("M:%d", mag);
 
             u8g2.sendBuffer();
         }
