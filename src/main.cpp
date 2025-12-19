@@ -279,14 +279,55 @@ void updateStatusLED() {
     static int pulseDir = 5;
     static unsigned long lastPulseTime = 0;
 
+    // New static vars for Low Battery
+    static bool hasWarnedLowBattery = false;
+    static unsigned long lastLowBatFlash = 0;
+
     // 1. Battery Warning (< 10%)
-    // Heltec Wireless Tracker has voltage divider on GPIO 1.
-    // ADC value 0-4095. Reference 3.3V. Divider factor ~2 (needs calibration).
-    // Assuming 3.3V logic, 3.7V LiPo.
-    // For now, we use a placeholder or simple check if we had the calibration data.
-    // Since we don't have calibration, we skip the actual reading to avoid false alarms.
-    // TODO: Implement ADC reading on GPIO 1.
-    bool lowBattery = (getBatteryPercent() < 10); 
+    int pct = getBatteryPercent();
+    bool lowBattery = (pct < 10); 
+
+    if (lowBattery) {
+        // Trigger Vibration ONCE when entering low battery state
+        if (!hasWarnedLowBattery) {
+            // 3x Vibration (Blocking is acceptable here for safety warning)
+            for(int i=0; i<3; i++) {
+                digitalWrite(PIN_VIB_MOTOR, HIGH);
+                delay(200);
+                digitalWrite(PIN_VIB_MOTOR, LOW);
+                delay(200);
+            }
+            hasWarnedLowBattery = true;
+        }
+
+        // Yellow Flash every 10s
+        if (millis() - lastLowBatFlash > 10000) {
+            pixels.setPixelColor(0, pixels.Color(255, 200, 0)); // Yellow
+            pixels.show();
+            delay(100); // Short flash
+            pixels.clear();
+            pixels.show();
+            lastLowBatFlash = millis();
+        }
+        
+        // Ensure LED is off between flashes (since we return early)
+        // The delay above handles the off state, but if we just entered this block
+        // and didn't flash, we want to make sure we aren't stuck with a red color from previous state.
+        // However, pixels.clear() is called at the end of the flash.
+        // If we transition from Red Pulse to Low Battery, we might need to clear once.
+        // But since we clear after flash, and we return, it should be fine.
+        // To be safe, we can ensure it's off if not flashing.
+        if (millis() - lastLowBatFlash > 150) {
+             pixels.clear();
+             pixels.show();
+        }
+
+        return; // Override other LED patterns
+    } else {
+        hasWarnedLowBattery = false; // Reset if charged
+    }
+
+    // 2. GPS Search (Red Pulse)
     if (!gps.location.isValid()) {
         if (millis() - lastPulseTime > 20) { // Smooth fading
             pixels.setPixelColor(0, pixels.Color(pulseBrightness, 0, 0));

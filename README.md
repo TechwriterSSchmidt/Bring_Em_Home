@@ -63,7 +63,7 @@ Shows the direction to Home (or next waypoint), current compass heading, and dis
 ![Navigation Screen](mockup_nav.png)
 
 ### 2. Searching for GPS
-Displayed when no GPS fix is available. Shows an animated text "Searching SATs . . .".
+Displayed when no GPS fix is available. Shows "Searching SATs" with an animated progress bar.
 
 ![Searching Screen](mockup_searching.png)
 
@@ -89,6 +89,12 @@ The device is optimized for long hikes. It uses dynamic CPU frequency scaling (2
 | **3000 mAh** | **~28 Hours** | **~11 Hours** |
 
 *> Note: Estimates include a 15% safety margin for converter losses and battery aging.*
+
+### Low Battery Warning
+When the battery drops below 10%:
+- **Vibration**: The device vibrates 3 times immediately upon reaching 10%.
+- **LED Signal**: The small status LED flashes yellow every 10 seconds.
+- **Display**: The battery icon in the top-left corner appears empty.
 
 ## Getting Started
 
