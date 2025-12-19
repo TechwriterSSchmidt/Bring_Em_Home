@@ -123,24 +123,32 @@ Arduino_GFX *gfx = new Arduino_ST7789(
     0             // row_offset2
 );
 
-// Helper: Draw Rotated Arrow
+// Helper: Draw Rotated Arrow (Fancy Needle)
 void drawArrow(int cx, int cy, int r, float angleDeg, uint16_t color) {
     float angleRad = (angleDeg - 90) * PI / 180.0; // -90 to point up at 0 deg
     
-    // Points for a triangle
     // Tip
     int x1 = cx + r * cos(angleRad);
     int y1 = cy + r * sin(angleRad);
     
-    // Back Left
-    int x2 = cx + (r * 0.6) * cos(angleRad + 2.5); // ~143 deg offset
-    int y2 = cy + (r * 0.6) * sin(angleRad + 2.5);
+    // Tail (indented)
+    int x2 = cx - (r * 0.3) * cos(angleRad);
+    int y2 = cy - (r * 0.3) * sin(angleRad);
     
-    // Back Right
-    int x3 = cx + (r * 0.6) * cos(angleRad - 2.5);
-    int y3 = cy + (r * 0.6) * sin(angleRad - 2.5);
+    // Side 1 (Right)
+    int x3 = cx + (r * 0.35) * cos(angleRad + PI/2);
+    int y3 = cy + (r * 0.35) * sin(angleRad + PI/2);
+
+    // Side 2 (Left)
+    int x4 = cx + (r * 0.35) * cos(angleRad - PI/2);
+    int y4 = cy + (r * 0.35) * sin(angleRad - PI/2);
     
-    gfx->fillTriangle(x1, y1, x2, y2, x3, y3, color);
+    // Draw two triangles for the needle
+    gfx->fillTriangle(x1, y1, x3, y3, x2, y2, color);
+    gfx->fillTriangle(x1, y1, x4, y4, x2, y2, color);
+    
+    // Center Dot
+    gfx->fillCircle(cx, cy, 3, C_GOLD);
 }
 
 // Initialization sequence from Waveshare Demo
@@ -484,28 +492,38 @@ void loop() {
     // 9. Update Display
     if (isDisplayOn) {
         static unsigned long lastUpdate = 0;
-        if (millis() - lastUpdate > 500) { // Faster update for smooth arrow
+        if (millis() - lastUpdate > 200) { // Faster update for smooth arrow
             lastUpdate = millis();
             
             gfx->fillScreen(BLACK);
             
-            // Header
-            gfx->setCursor(0, 10);
-            gfx->setTextColor(WHITE);
-            gfx->setTextSize(2);
-            if (currentMode == MODE_RECORDING) {
-                gfx->print("REC ");
-            } else {
-                gfx->setTextColor(CYAN);
-                gfx->print("BACK ");
-                gfx->setTextColor(WHITE);
-            }
+            // --- Header ---
+            // Top Line
+            gfx->drawFastHLine(20, 35, 200, C_SILVER);
             
+            // Mode Title (Centered)
+            gfx->setTextSize(2);
+            String title = (currentMode == MODE_RECORDING) ? "EXPLORE" : "RETURN";
+            uint16_t titleColor = (currentMode == MODE_RECORDING) ? C_EMERALD : C_RUBY;
+            
+            int16_t x1, y1;
+            uint16_t w, h;
+            gfx->getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
+            gfx->setCursor((SCREEN_WIDTH - w) / 2, 10);
+            gfx->setTextColor(titleColor);
+            gfx->print(title);
+
+            // Satellites (Small, Top Right)
+            gfx->setTextSize(1);
+            gfx->setTextColor(C_SILVER);
+            gfx->setCursor(190, 5);
             if (gps.location.isValid()) {
-                gfx->printf("Sats:%d", gps.satellites.value());
+                gfx->printf("%d", gps.satellites.value());
             } else {
-                gfx->print("No Fix");
+                gfx->print("X");
             }
+
+            // --- Main Content ---
             
             // Target Info
             double targetLat = homeLat;
@@ -518,83 +536,91 @@ void loop() {
                 targetIsHome = false;
             }
 
-            if (currentMode == MODE_RECORDING) {
-                // 1. Distance Info (if GPS & Home)
-                if (gps.location.isValid() && hasHome) {
-                    double dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), homeLat, homeLon);
-                    gfx->setCursor(20, 60);
-                    gfx->setTextColor(WHITE);
-                    gfx->setTextSize(3);
-                    if (dist < 1000) gfx->printf("%.0f m", dist);
-                    else gfx->printf("%.2f km", dist / 1000.0);
-                    
-                    gfx->setCursor(20, 90);
-                    gfx->setTextSize(1);
-                    gfx->setTextColor(YELLOW);
-                    gfx->print("Dist to Home");
-                } else if (!hasHome) {
-                    gfx->setCursor(20, 100);
-                    gfx->setTextColor(RED);
-                    gfx->setTextSize(2);
-                    gfx->print("Set Home!");
-                }
+            // Distance & Arrow Logic
+            double dist = 0;
+            double bearing = 0;
+            bool showArrow = false;
+            uint16_t arrowColor = C_SILVER;
 
-                // 2. Compass Arrow (Always, Green, Points North)
-                int relBearing = 0 - currentHeading;
-                if (relBearing < 0) relBearing += 360;
-                drawArrow(SCREEN_WIDTH/2, 160, 40, relBearing, GREEN);
-                
-                // N Label
-                float angleRad = (relBearing - 90) * PI / 180.0;
-                int nx = (SCREEN_WIDTH/2) + 55 * cos(angleRad);
-                int ny = 160 + 55 * sin(angleRad);
-                gfx->setCursor(nx-6, ny-6);
-                gfx->setTextColor(GREEN);
-                gfx->setTextSize(2);
-                gfx->print("N");
-
-            } else { // MODE_BACKTRACKING
-                if (gps.location.isValid()) {
-                    double dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), targetLat, targetLon);
-                    double bearing = gps.courseTo(gps.location.lat(), gps.location.lng(), targetLat, targetLon);
-                    
-                    gfx->setCursor(20, 60);
-                    gfx->setTextColor(GREEN);
-                    gfx->setTextSize(3);
-                    if (dist < 1000) gfx->printf("%.0f m", dist);
-                    else gfx->printf("%.2f km", dist / 1000.0);
-                    
-                    gfx->setCursor(20, 90);
-                    gfx->setTextSize(1);
-                    gfx->setTextColor(YELLOW);
-                    if (targetIsHome) gfx->print("To: HOME");
-                    else gfx->printf("To: WP #%d", targetBreadcrumbIndex + 1);
-                    
-                    // Direction Arrow (Red, Points to Target)
-                    int relBearing = (int)bearing - currentHeading;
-                    if (relBearing < 0) relBearing += 360;
-                    drawArrow(SCREEN_WIDTH/2, 160, 40, relBearing, RED);
-                } else {
-                    gfx->setCursor(20, 100);
-                    gfx->setTextColor(RED);
-                    gfx->setTextSize(2);
-                    gfx->print("No GPS Fix");
-                }
-            }
-            
-            // Footer: Coordinates
-            gfx->setCursor(10, 205);
-            gfx->setTextColor(CYAN);
-            gfx->setTextSize(1);
             if (gps.location.isValid()) {
-                gfx->printf("Lat:%.5f Lon:%.5f", gps.location.lat(), gps.location.lng());
+                if (currentMode == MODE_RECORDING) {
+                     // Compass Mode
+                     if (hasHome) {
+                        dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), homeLat, homeLon);
+                     }
+                     bearing = 0; // North
+                     showArrow = true;
+                     arrowColor = C_EMERALD;
+                } else {
+                    // Backtrack Mode
+                    dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), targetLat, targetLon);
+                    bearing = gps.courseTo(gps.location.lat(), gps.location.lng(), targetLat, targetLon);
+                    showArrow = true;
+                    arrowColor = C_RUBY;
+                }
             }
 
-            // Footer: Stats
-            gfx->setCursor(10, 220);
-            gfx->setTextColor(MAGENTA);
-            gfx->setTextSize(1);
-            gfx->printf("WPs: %d  Hdg: %d", breadcrumbs.size(), currentHeading);
+            // Draw Arrow (Center)
+            if (showArrow) {
+                int relBearing = (int)bearing - currentHeading;
+                if (relBearing < 0) relBearing += 360;
+                
+                // Draw fancy needle
+                drawArrow(SCREEN_WIDTH/2, 110, 55, relBearing, arrowColor);
+                
+                // N indicator for Recording mode
+                if (currentMode == MODE_RECORDING) {
+                    float angleRad = (relBearing - 90) * PI / 180.0;
+                    int nx = (SCREEN_WIDTH/2) + 70 * cos(angleRad);
+                    int ny = 110 + 70 * sin(angleRad);
+                    gfx->setCursor(nx-6, ny-6);
+                    gfx->setTextColor(C_EMERALD);
+                    gfx->setTextSize(2);
+                    gfx->print("N");
+                }
+            } else {
+                // No GPS or No Home
+                if (!gps.location.isValid()) {
+                    gfx->setCursor(60, 100);
+                    gfx->setTextColor(RED);
+                    gfx->setTextSize(2);
+                    gfx->print("NO GPS");
+                } else if (!hasHome && currentMode == MODE_RECORDING) {
+                    gfx->setCursor(50, 100);
+                    gfx->setTextColor(C_GOLD);
+                    gfx->setTextSize(2);
+                    gfx->print("SET HOME");
+                }
+            }
+
+            // Distance Text (Below Arrow)
+            if (gps.location.isValid() && (hasHome || currentMode == MODE_BACKTRACKING)) {
+                String distStr;
+                if (dist < 1000) distStr = String(dist, 0) + " m";
+                else distStr = String(dist / 1000.0, 2) + " km";
+                
+                gfx->setTextSize(3);
+                gfx->getTextBounds(distStr, 0, 0, &x1, &y1, &w, &h);
+                gfx->setCursor((SCREEN_WIDTH - w) / 2, 180);
+                gfx->setTextColor(WHITE);
+                gfx->print(distStr);
+                
+                // Label
+                String label = targetIsHome ? "HOME" : "WAYPOINT";
+                gfx->setTextSize(1);
+                gfx->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
+                gfx->setCursor((SCREEN_WIDTH - w) / 2, 215);
+                gfx->setTextColor(C_GOLD);
+                gfx->print(label);
+            }
+
+            // --- Footer ---
+            // Minimal stats at very bottom
+            // gfx->drawFastHLine(60, 230, 120, C_DARK);
+            // gfx->setCursor(90, 232);
+            // gfx->setTextColor(C_DARK);
+            // gfx->setTextSize(1);
+            // gfx->printf("WP:%d", breadcrumbs.size());
         }
     }
     
