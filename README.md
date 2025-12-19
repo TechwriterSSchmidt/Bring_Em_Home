@@ -39,9 +39,10 @@ The Heltec Wireless Tracker integrates most components, simplifying the wiring s
 
 - ✅ **Intuitive UI**: Graphical interface with GPS signal bars and battery status.
 - ✅ **Smart Auto-Home**: Automatically sets home on power-up when GPS fix is found.
-- ✅ **Crash Recovery**: Restores home position if device restarts due to software error.
-- ✅ Save home position manually with button press (Long Press)
-- ✅ Breadcrumb trail (auto-save every 250m)
+- ✅ **Crash Recovery**: Restores home position and breadcrumbs if device restarts due to software error.
+- ✅ Save home position manually with button press (Long Press > 10s)
+- ✅ Breadcrumb trail (auto-save every 250m, persistent in Flash memory)
+- ✅ **Smart GPS Filter**: Ignores GPS drift when standing still or moving too fast (>12km/h).
 - ✅ Backtracking mode to retrace steps
 - ✅ Calculate distance to home/waypoint
 - ✅ Digital compass (North Arrow)

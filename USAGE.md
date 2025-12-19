@@ -40,6 +40,7 @@ The device is operated by a single button (GPIO 14). The software includes debou
 | **Flashlight** | 3 Clicks | Toggles the High Power LED flashlight. |
 | **SOS Signal** | 4 Clicks | Activates SOS Morse code flashing. |
 | **SOS Signal** | Hold >3s | Activates/Deactivates SOS Mode (Alternative). |
+| **Reset Home** | Hold >10s | **(Explorer Mode only)** Overwrites the current Home position with your current location. Useful if you started tracking too early (e.g. at the bus stop). |
 
 ## Understanding the Display
 
@@ -51,6 +52,7 @@ The display uses a graphical interface to show all important information at a gl
 - **Left**: Status Icons
   - `L`: Flashlight is ON
   - `SOS`: SOS Mode Active (shows countdown to next LoRa beacon)
+    - *Note: The LoRa message includes your coordinates, battery level, and blood type.*
 - **Center**: Mode Title
   - `EXPLORER`: Recording path, waiting to set Home.
   - `BRING ME HOME!`: Navigating back to start.
