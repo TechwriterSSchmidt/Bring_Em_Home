@@ -176,7 +176,7 @@ void updateSOS() {
 }
 
 // Helper: Draw Rotated Arrow (Fancy Needle)
-void drawArrow(int cx, int cy, int r, float angleDeg) {
+void drawArrow(int cx, int cy, int r, float angleDeg, bool showCardinals = false) {
     float angleRad = (angleDeg - 90) * PI / 180.0; // -90 to point up at 0 deg
     
     // Tip
@@ -201,6 +201,27 @@ void drawArrow(int cx, int cy, int r, float angleDeg) {
     
     // Center Dot
     u8g2.drawDisc(cx, cy, 3);
+
+    // Draw Cardinals if requested
+    if (showCardinals) {
+        u8g2.setFont(u8g2_font_6x10_tr);
+        int r_text = r + 12; // Radius for text
+        
+        struct Cardinal { const char* label; float offset; };
+        Cardinal dirs[] = { {"N", 0}, {"E", 90}, {"S", 180}, {"W", 270} };
+        
+        for (auto& d : dirs) {
+            float a = (angleDeg + d.offset - 90) * PI / 180.0;
+            int tx = cx + r_text * cos(a);
+            int ty = cy + r_text * sin(a);
+            
+            // Center text
+            int w = u8g2.getStrWidth(d.label);
+            int h = 8; // approx height
+            u8g2.setCursor(tx - w/2, ty - h/2);
+            u8g2.print(d.label);
+        }
+    }
 }
 
 // --- Helper Functions ---
@@ -823,64 +844,33 @@ void loop() {
 
             // --- Main Content ---
             
-            // If NO GPS, show Satellite Dish Animation
+            // If NO GPS, show Text Animation
             if (!gps.location.isValid()) {
                 // Animation Timer
                 static int animPhase = 0;
                 static unsigned long lastAnim = 0;
-                if (millis() - lastAnim > 300) {
+                if (millis() - lastAnim > 500) {
                     animPhase = (animPhase + 1) % 4;
                     lastAnim = millis();
                 }
 
-                int cx = 40; // Left side
-                int cy = 64; // Vertical Center
-
-                // --- Dish Construction (Facing Right) ---
+                u8g2.setFont(u8g2_font_ncenB10_tr);
+                const char* baseTxt = "Searching SATs";
+                int w = u8g2.getStrWidth(baseTxt);
                 
-                // 1. Base (Stand)
-                u8g2.setDrawColor(1);
-                u8g2.drawTriangle(cx-10, cy+25, cx+10, cy+25, cx, cy+10); // Triangle base
-                u8g2.drawBox(cx-15, cy+25, 30, 4); // Footer
+                // Center the text block roughly (accounting for dots width approx 15px)
+                int totalW = w + 15; 
+                int startX = (SCREEN_WIDTH - totalW) / 2;
+                int y = 64;
 
-                // 2. Dish Body (Crescent)
-                // Draw large filled circle (Left Half)
-                u8g2.drawDisc(cx, cy, 22, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_LOWER_LEFT);
-                // Erase inner part to make it a bowl
-                u8g2.setDrawColor(0);
-                u8g2.drawDisc(cx+6, cy, 22, U8G2_DRAW_UPPER_LEFT | U8G2_DRAW_LOWER_LEFT);
-                u8g2.setDrawColor(1);
+                u8g2.setCursor(startX, y);
+                u8g2.print(baseTxt);
 
-                // 3. LNB Arm & Head
-                u8g2.drawLine(cx, cy, cx+20, cy); // Arm
-                u8g2.drawDisc(cx+20, cy, 4);      // LNB Head
+                // Animated Dots
+                if (animPhase >= 1) u8g2.print(" .");
+                if (animPhase >= 2) u8g2.print(" .");
+                if (animPhase >= 3) u8g2.print(" .");
 
-                // 4. Waves (Animated)
-                int wx = cx + 20;
-                int wy = cy;
-                
-                // Wave 1
-                if (animPhase >= 1) {
-                    u8g2.drawCircle(wx, wy, 10, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
-                    u8g2.drawCircle(wx, wy, 11, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
-                }
-                // Wave 2
-                if (animPhase >= 2) {
-                    u8g2.drawCircle(wx, wy, 22, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
-                    u8g2.drawCircle(wx, wy, 23, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
-                }
-                // Wave 3
-                if (animPhase >= 3) {
-                    u8g2.drawCircle(wx, wy, 34, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
-                    u8g2.drawCircle(wx, wy, 35, U8G2_DRAW_UPPER_RIGHT | U8G2_DRAW_LOWER_RIGHT);
-                }
-                
-                u8g2.setFont(u8g2_font_6x10_tr);
-                const char* txt = "Searching...";
-                w = u8g2.getStrWidth(txt);
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 115);
-                u8g2.print(txt);
-                
                 u8g2.sendBuffer();
                 return; // Skip rest of drawing
             }
@@ -924,9 +914,12 @@ void loop() {
                 
                 // Draw fancy needle
                 int arrowCy = 64; // Center of screen
-                drawArrow(SCREEN_WIDTH/2, arrowCy, 35, relBearing);
+                // Show cardinals only in Explore Mode (where arrow points North)
+                bool showCardinals = (currentMode == MODE_EXPLORE);
+                drawArrow(SCREEN_WIDTH/2, arrowCy, 35, relBearing, showCardinals);
                 
-                // N indicator for Recording mode
+                // N indicator for Recording mode (REMOVED - now part of drawArrow)
+                /*
                 if (currentMode == MODE_EXPLORE) {
                     float angleRad = (relBearing - 90) * PI / 180.0;
                     int nx = (SCREEN_WIDTH/2) + 45 * cos(angleRad);
@@ -935,6 +928,7 @@ void loop() {
                     u8g2.setCursor(nx-5, ny-5);
                     u8g2.print("N");
                 }
+                */
             } else {
                 // No GPS (Backtracking) or No Home (Recording - but arrow is always shown now)
                 if (currentMode == MODE_BRING_HOME && !gps.location.isValid()) {
