@@ -18,8 +18,7 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <TinyGPSPlus.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ST7789.h>
+#include <Arduino_GFX_Library.h>
 #include <Adafruit_HMC5883_U.h>
 #include <Preferences.h>
 
@@ -53,7 +52,11 @@
 #define COMPASS_RADIUS    30
 
 // Create objects
-Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI);
+// Waveshare 1.47" uses ST7789 driver with specific offsets and resolution
+// Note: If using the Waveshare ESP32-S3-Touch-LCD-1.47 board, check if pins match: DC=45, CS=21, SCK=38, MOSI=39, RST=47
+Arduino_GFX *tft = new Arduino_ST7789(bus, TFT_RST, 0 /* rotation */, false /* IPS */, SCREEN_WIDTH, SCREEN_HEIGHT, 34 /* col_offset1 */, 0 /* row_offset1 */, 34 /* col_offset2 */, 0 /* row_offset2 */);
+
 TinyGPSPlus gps;
 Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 Preferences preferences;
@@ -103,15 +106,15 @@ void setup() {
   digitalWrite(TFT_BLK, HIGH); // Turn on backlight
 
   // Initialize display
-  tft.init(SCREEN_WIDTH, SCREEN_HEIGHT);
-  tft.setRotation(1); // Landscape
-  tft.fillScreen(ST77XX_BLACK);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.setTextSize(1);
+  tft->begin();
+  tft->setRotation(1); // Landscape
+  tft->fillScreen(BLACK);
+  tft->setTextColor(WHITE);
+  tft->setTextSize(1);
   
-  tft.setCursor(10, 10);
-  tft.println("Bring Em Home");
-  tft.println("Initializing...");
+  tft->setCursor(10, 10);
+  tft->println("Bring Em Home");
+  tft->println("Initializing...");
 
   // Initialize I2C for compass
   Wire.begin(I2C_SDA, I2C_SCL);
@@ -119,15 +122,15 @@ void setup() {
   // Initialize compass
   if (mag.begin()) {
     Serial.println("HMC5883L detected!");
-    tft.println("Compass: OK");
+    tft->println("Compass: OK");
   } else {
     Serial.println("No HMC5883L detected");
-    tft.println("Compass: FAIL");
+    tft->println("Compass: FAIL");
   }
 
   // Initialize GPS
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-  tft.println("GPS: Starting...");
+  tft->println("GPS: Starting...");
   Serial.println("GPS initialized");
 
   // Load saved home position
@@ -138,12 +141,12 @@ void setup() {
   if (homeLat != 0.0 || homeLon != 0.0) {
     homeSet = true;
     Serial.printf("Loaded home: %.6f, %.6f\n", homeLat, homeLon);
-    tft.println("Home pos loaded");
+    tft->println("Home pos loaded");
   }
   preferences.end();
 
   delay(2000);
-  tft.fillScreen(ST77XX_BLACK);
+  tft->fillScreen(BLACK);
 }
 
 void saveHomePosition() {
@@ -238,8 +241,8 @@ void drawCompassArrow(int centerX, int centerY, int radius, float angle, uint16_
   int x3 = centerX + (radius * 0.5) * cos(rad3);
   int y3 = centerY + (radius * 0.5) * sin(rad3);
   
-  tft.fillTriangle(x1, y1, x2, y2, x3, y3, color);
-  tft.drawCircle(centerX, centerY, radius + 2, ST77XX_WHITE);
+  tft->fillTriangle(x1, y1, x2, y2, x3, y3, color);
+  tft->drawCircle(centerX, centerY, radius + 2, WHITE);
 }
 
 void updateDisplay() {
@@ -249,16 +252,16 @@ void updateDisplay() {
   if (showHomeSavedFeedback) {
     if (currentTime - homeSavedFeedbackTime < HOME_SAVED_FEEDBACK_DURATION) {
       // Show green feedback screen
-      tft.fillScreen(ST77XX_GREEN);
-      tft.setTextColor(ST77XX_BLACK);
-      tft.setCursor(40, SCREEN_HEIGHT/2 - 10);
-      tft.setTextSize(2);
-      tft.println("HOME SAVED!");
+      tft->fillScreen(GREEN);
+      tft->setTextColor(BLACK);
+      tft->setCursor(40, SCREEN_HEIGHT/2 - 10);
+      tft->setTextSize(2);
+      tft->println("HOME SAVED!");
       return; // Skip normal display update
     } else {
       // Feedback period ended
       showHomeSavedFeedback = false;
-      tft.fillScreen(ST77XX_BLACK);
+      tft->fillScreen(BLACK);
     }
   }
   
@@ -267,108 +270,108 @@ void updateDisplay() {
   }
   lastDisplayUpdate = currentTime;
   
-  tft.fillScreen(ST77XX_BLACK);
-  tft.setTextSize(1);
-  tft.setTextColor(ST77XX_WHITE);
+  tft->fillScreen(BLACK);
+  tft->setTextSize(1);
+  tft->setTextColor(WHITE);
   
   // Title
-  tft.setCursor(5, 5);
-  tft.setTextColor(ST77XX_YELLOW);
-  tft.setTextSize(2);
-  tft.println("Bring Em Home");
+  tft->setCursor(5, 5);
+  tft->setTextColor(YELLOW);
+  tft->setTextSize(2);
+  tft->println("Bring Em Home");
   
   // GPS Status
-  tft.setCursor(5, 30);
-  tft.setTextSize(1);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.print("GPS: ");
+  tft->setCursor(5, 30);
+  tft->setTextSize(1);
+  tft->setTextColor(WHITE);
+  tft->print("GPS: ");
   if (gpsValid) {
-    tft.setTextColor(ST77XX_GREEN);
-    tft.print("LOCKED");
-    tft.setTextColor(ST77XX_WHITE);
-    tft.print(" Sats: ");
-    tft.print(gps.satellites.value());
+    tft->setTextColor(GREEN);
+    tft->print("LOCKED");
+    tft->setTextColor(WHITE);
+    tft->print(" Sats: ");
+    tft->print(gps.satellites.value());
   } else {
-    tft.setTextColor(ST77XX_RED);
-    tft.println("SEARCHING...");
+    tft->setTextColor(RED);
+    tft->println("SEARCHING...");
   }
   
   // Current position
-  tft.setCursor(5, 45);
-  tft.setTextColor(ST77XX_CYAN);
-  tft.print("Lat: ");
-  tft.println(currentLat, 6);
-  tft.setCursor(5, 55);
-  tft.print("Lon: ");
-  tft.println(currentLon, 6);
+  tft->setCursor(5, 45);
+  tft->setTextColor(CYAN);
+  tft->print("Lat: ");
+  tft->println(currentLat, 6);
+  tft->setCursor(5, 55);
+  tft->print("Lon: ");
+  tft->println(currentLon, 6);
   
   // Compass heading
-  tft.setCursor(5, 70);
-  tft.setTextColor(ST77XX_MAGENTA);
-  tft.print("Heading: ");
-  tft.print((int)heading);
-  tft.println("°");
+  tft->setCursor(5, 70);
+  tft->setTextColor(MAGENTA);
+  tft->print("Heading: ");
+  tft->print((int)heading);
+  tft->println("°");
   
   // Home position and navigation
   if (homeSet) {
-    tft.setCursor(5, 90);
-    tft.setTextColor(ST77XX_YELLOW);
-    tft.println("HOME POSITION SET");
+    tft->setCursor(5, 90);
+    tft->setTextColor(YELLOW);
+    tft->println("HOME POSITION SET");
     
-    tft.setCursor(5, 105);
-    tft.setTextColor(ST77XX_CYAN);
-    tft.print("Home: ");
-    tft.print(homeLat, 6);
-    tft.setCursor(5, 115);
-    tft.print("      ");
-    tft.print(homeLon, 6);
+    tft->setCursor(5, 105);
+    tft->setTextColor(CYAN);
+    tft->print("Home: ");
+    tft->print(homeLat, 6);
+    tft->setCursor(5, 115);
+    tft->print("      ");
+    tft->print(homeLon, 6);
     
     if (gpsValid) {
       // Distance
-      tft.setCursor(5, 130);
-      tft.setTextColor(ST77XX_GREEN);
-      tft.print("Distance: ");
+      tft->setCursor(5, 130);
+      tft->setTextColor(GREEN);
+      tft->print("Distance: ");
       if (distanceToHome < 1000) {
-        tft.print((int)distanceToHome);
-        tft.println(" m");
+        tft->print((int)distanceToHome);
+        tft->println(" m");
       } else {
-        tft.print(distanceToHome / 1000.0, 2);
-        tft.println(" km");
+        tft->print(distanceToHome / 1000.0, 2);
+        tft->println(" km");
       }
       
       // Bearing
-      tft.setCursor(5, 145);
-      tft.print("Bearing: ");
-      tft.print((int)bearingToHome);
-      tft.println("°");
+      tft->setCursor(5, 145);
+      tft->print("Bearing: ");
+      tft->print((int)bearingToHome);
+      tft->println("°");
       
       // Compass arrow showing direction to home
       float relativeAngle = bearingToHome - heading;
       // Normalize angle to -180 to +180 range
       while (relativeAngle > 180.0) relativeAngle -= 360.0;
       while (relativeAngle < -180.0) relativeAngle += 360.0;
-      drawCompassArrow(COMPASS_CENTER_X, COMPASS_CENTER_Y, COMPASS_RADIUS, relativeAngle, ST77XX_GREEN);
+      drawCompassArrow(COMPASS_CENTER_X, COMPASS_CENTER_Y, COMPASS_RADIUS, relativeAngle, GREEN);
       
-      tft.setCursor(240, 140);
-      tft.setTextSize(1);
-      tft.println("Home");
+      tft->setCursor(240, 140);
+      tft->setTextSize(1);
+      tft->println("Home");
     }
   } else {
-    tft.setCursor(5, 90);
-    tft.setTextColor(ST77XX_ORANGE);
-    tft.println("NO HOME SET");
-    tft.setCursor(5, 105);
-    tft.setTextSize(1);
-    tft.println("Press BOOT button");
-    tft.setCursor(5, 115);
-    tft.println("to save home pos");
+    tft->setCursor(5, 90);
+    tft->setTextColor(ORANGE);
+    tft->println("NO HOME SET");
+    tft->setCursor(5, 105);
+    tft->setTextSize(1);
+    tft->println("Press BOOT button");
+    tft->setCursor(5, 115);
+    tft->println("to save home pos");
   }
   
   // Instructions at bottom
-  tft.setCursor(5, 160);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.setTextSize(1);
-  tft.println("BOOT: Save home position");
+  tft->setCursor(5, 160);
+  tft->setTextColor(WHITE);
+  tft->setTextSize(1);
+  tft->println("BOOT: Save home position");
 }
 
 void loop() {
