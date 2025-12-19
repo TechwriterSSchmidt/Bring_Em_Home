@@ -13,19 +13,33 @@ This guide will walk you through using your GPS navigation device for the first 
 
 ### Setting Your Home Position
 
-When you reach the trailhead or your starting point:
+**Automatic Mode:**
+1. Turn the device **ON** at your starting point (Trailhead).
+2. Wait for GPS lock.
+3. The device will automatically save the first valid position as **HOME**.
+   - Screen flashes **GREEN** and shows "HOME SET!".
 
-1. Wait until GPS shows **"LOCKED"** status on screen
-2. Verify satellite count is at least 4 (preferably 6+)
-3. Press and hold the **BOOT button** for 1 second
-4. Screen will flash **GREEN** and display "HOME SAVED!"
-5. You'll see home coordinates displayed
+**Note on Power Cycling:**
+- Turning the device **OFF** via the physical switch will **RESET** the home position logic.
+- The next time you turn it ON, it will try to set a **NEW** home position.
+- If the device restarts due to a software error (Crash/Watchdog), it will **RESTORE** the previous home position.
 
-**Important**: Only save home position when:
-- GPS shows "LOCKED" status
-- You have 4+ satellites
-- You're at your intended starting point
-- You're outdoors with clear sky view
+### Compass Calibration
+The BNO055 sensor calibrates itself automatically during movement.
+- **Status Indicator**: A small "CAL: M:x" (0-3) is shown on the top bar.
+- **To Calibrate**: Move the device in a figure-8 motion until the status shows 3 (Green).
+
+## Controls
+
+The device is operated by a single button (GPIO 14). The software includes debouncing to prevent accidental triggers.
+
+| Action | Gesture | Function |
+|--------|---------|----------|
+| **Toggle Display** | 1 Click | Turns screen ON/OFF to save power. |
+| **Switch Mode** | 2 Clicks | Toggles between **Explore Mode** (Recording) and **Return Mode** (Backtracking). |
+| **Flashlight** | 3 Clicks | Toggles the High Power LED flashlight. |
+| **SOS Signal** | 4 Clicks | Activates SOS Morse code flashing. |
+| **Toggle Beacon** | Hold >3s | Activates/Deactivates Bluetooth Low Energy (BLE) Beacon for location finding. |
 
 ## Understanding the Display
 

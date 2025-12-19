@@ -1,20 +1,18 @@
 Bring Em Home - Connection Schematic
 =====================================
-Reference: https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-1.47/ESP32-S3-Touch-LCD-1.47-Schematic.pdf
-
 Hardware Components:
-- Waveshare ESP32-S3 Touch LCD 1.47" Board
+- Waveshare ESP32-S3-LCD-1.3 Board (240x240)
 - HGLRC M100-5883 M10 GPS Module (with integrated HMC5883L compass)
+- External Button, Vibration Motor, High Power LED
 
 Connection Diagram:
 ==================
 
                                     ┌─────────────────────────────┐
-                                    │  ESP32-S3 Touch LCD Board   │
-                                    │  (Waveshare 1.47")          │
+                                    │  ESP32-S3 LCD 1.3 Board     │
                                     │                             │
-         ┌──────────────────────────┤ GPIO 18 (UART1 RX)         │
-         │                          │ GPIO 17 (UART1 TX)         ├──────────┐
+         ┌──────────────────────────┤ GPIO 18 (UART RX)          │
+         │                          │ GPIO 17 (UART TX)          ├──────────┐
          │              ┌───────────┤ GPIO 8  (I2C SDA)          │          │
          │              │           │ GPIO 9  (I2C SCL)          ├─────┐    │
          │              │           │                             │     │    │
@@ -23,15 +21,17 @@ Connection Diagram:
          │              │           │ GND                         ├┐││  │    │
          │              │           │                             ││││  │    │
          │              │           │ Display (Built-in):         ││││  │    │
-         │              │           │  - CS: GPIO 10              ││││  │    │
-         │              │           │  - DC: GPIO 13              ││││  │    │
-         │              │           │  - RST: GPIO 14             ││││  │    │
-         │              │           │  - MOSI: GPIO 11            ││││  │    │
-         │              │           │  - SCLK: GPIO 12            ││││  │    │
-         │              │           │  - BLK: GPIO 38             ││││  │    │
+         │              │           │  - CS: GPIO 39              ││││  │    │
+         │              │           │  - DC: GPIO 38              ││││  │    │
+         │              │           │  - RST: GPIO 42             ││││  │    │
+         │              │           │  - MOSI: GPIO 41            ││││  │    │
+         │              │           │  - SCK: GPIO 40             ││││  │    │
+         │              │           │  - BL: GPIO 45              ││││  │    │
          │              │           │                             ││││  │    │
-         │              │           │ Button:                     ││││  │    │
-         │              │           │  - BOOT: GPIO 0 (built-in)  ││││  │    │
+         │              │           │ Peripherals:                ││││  │    │
+         │              │           │  - Button: GPIO 14          ││││  │    │
+         │              │           │  - Vibration: GPIO 13       ││││  │    │
+         │              │           │  - Flashlight: GPIO 21      ││││  │    │
          │              │           └─────────────────────────────┘│││  │    │
          │              │                                          │││  │    │
          │              │           ┌──────────────────────────────┘││  │    │
@@ -53,51 +53,26 @@ Connection Diagram:
     │   SCL ◄───────────────────────────────────────── (I2C Clock)         │
     │   VCC (3.3V) ◄─────────────────────────────┘                         │
     │   GND ◄─────────────────────────────────────┘                        │
-    │                                                                       │
-    │  Antenna Connector (u.FL or SMA)                                     │
     └───────────────────────────────────────────────────────────────────────┘
-
-Power Supply:
-=============
-USB-C cable → ESP32-S3 board → provides 5V and 3.3V rails
-- 5V for GPS module
-- 3.3V for magnetometer
-- Total current: ~190mA @ 5V
 
 GPIO Pin Summary:
 =================
 ESP32-S3 Pin | Function              | Connection
 -------------|-----------------------|------------------------
-GPIO 0       | BOOT Button           | Built-in button (INPUT_PULLUP)
 GPIO 8       | I2C SDA               | Magnetometer SDA
 GPIO 9       | I2C SCL               | Magnetometer SCL
-GPIO 10      | SPI CS                | Display CS (built-in)
-GPIO 11      | SPI MOSI              | Display MOSI (built-in)
-GPIO 12      | SPI SCLK              | Display SCLK (built-in)
-GPIO 13      | Display DC            | Display DC pin (built-in)
-GPIO 14      | Display Reset         | Display RST (built-in)
-GPIO 17      | UART1 TX              | GPS RX
-GPIO 18      | UART1 RX              | GPS TX
-GPIO 38      | Backlight Control     | Display backlight (built-in)
+GPIO 13      | Vibration Motor       | Transistor Base / Motor Driver
+GPIO 14      | External Button       | Button (Input Pullup)
+GPIO 17      | UART TX               | GPS RX
+GPIO 18      | UART RX               | GPS TX
+GPIO 21      | Flashlight LED        | LED Driver / Transistor
+GPIO 38      | Display DC            | Display DC pin (built-in)
+GPIO 39      | SPI CS                | Display CS (built-in)
+GPIO 40      | SPI SCK               | Display SCK (built-in)
+GPIO 41      | SPI MOSI              | Display MOSI (built-in)
+GPIO 42      | Display Reset         | Display RST (built-in)
+GPIO 45      | Backlight Control     | Display backlight (built-in)
 
-Notes:
-======
-1. Display connections are pre-wired on Waveshare board - no external wiring needed
-2. BOOT button (GPIO 0) is built into ESP32-S3 board - no external button needed
-3. GPS module TX connects to ESP32 RX (cross-over connection)
-4. GPS module RX connects to ESP32 TX (cross-over connection)
-5. I2C connections are straightforward (SDA to SDA, SCL to SCL)
-6. GPS module needs 5V power, Magnetometer needs 3.3V
-7. Common ground is essential for all components
-8. Keep I2C wires short (< 20cm) for reliable communication
-9. GPS antenna should face upward for best signal reception
-10. Keep magnetometer away from magnetic materials and strong currents
-
-Signal Levels:
-==============
-- UART: 3.3V logic levels (compatible with ESP32-S3 and GPS module)
-- I2C: 3.3V logic levels with internal pull-ups
-- SPI: 3.3V logic levels (display interface)
 
 Typical Current Consumption:
 ============================

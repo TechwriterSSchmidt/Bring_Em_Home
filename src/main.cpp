@@ -1,54 +1,36 @@
-﻿// ESP32-S3-LCD-1.3 - Bring Em Home Project
-// Using Arduino_GFX library with ST7789 driver
-// Hardware: Waveshare ESP32-S3-LCD-1.3 (240x240)
-// Pinout based on nishad2m8/WS-1.3
+﻿// ESP32-S3 - Bring Em Home Project
+// Using U8g2 library for SH1107 128x128 OLED (I2C)
+// Hardware: ESP32-S3 + SH1107 OLED + BNO055 + ATGM336H
 
 #include <Arduino.h>
-#include <Arduino_GFX_Library.h>
+#include <U8g2lib.h>
 #include <Wire.h>
 #include <TinyGPS++.h>
-#include <MechaQMC5883.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BNO055.h>
 #include <Preferences.h>
 #include <vector>
 #include <WiFi.h> // For power management
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLEBeacon.h>
 
-// RGB565 Color definitions
-#define BLACK   0x0000
-#define WHITE   0xFFFF
-#define RED     0xF800
-#define GREEN   0x07E0
-#define BLUE    0x001F
-#define YELLOW  0xFFE0
-#define CYAN    0x07FF
-#define MAGENTA 0xF81F
-
-// Elegant Palette
-#define C_GOLD       0xFEA0 
-#define C_EMERALD    0x05E6
-#define C_RUBY       0xC804
-#define C_SILVER     0xC618
-#define C_DARK       0x10A2
-
-// ESP32-S3-LCD-1.3 Pin Configuration
-// Based on nishad2m8/WS-1.3 User_Setup.h
-#define TFT_MOSI  41
-#define TFT_SCK   40
-#define TFT_CS    39
-#define TFT_DC    38
-#define TFT_RST   42
-#define TFT_BL    45 
-#define BUTTON_PIN 14 // External waterproof button
-#define VIB_PIN 13    // Vibration Motor
+// ESP32-S3 Pin Configuration (Heltec Wireless Tracker)
+#define BUTTON_PIN 0  // Built-in Boot Button (PRG) or External on GPIO 0
+#define VIB_PIN 7     // Vibration Motor (Moved from 13)
+#define FLASHLIGHT_PIN 5 // High Power LED (Moved from 21)
+#define VEXT_PIN 3    // Power Control for Sensors
 
 // Sensor Pins
-#define GPS_RX 17
-#define GPS_TX 18
-#define I2C_SDA 8
-#define I2C_SCL 9
+#define GPS_RX 34     // Internal GPS RX
+#define GPS_TX 33     // Internal GPS TX
+#define I2C_SDA 41    // External I2C SDA
+#define I2C_SCL 42    // External I2C SCL
 
 // Display dimensions
-#define SCREEN_WIDTH  240
-#define SCREEN_HEIGHT 240
+#define SCREEN_WIDTH  128
+#define SCREEN_HEIGHT 128
 
 // Power Management
 #define DISPLAY_TIMEOUT 300000 // 5 minutes in milliseconds
@@ -62,25 +44,14 @@ bool isLongPressHandled = false;
 unsigned long vibrationStartTime = 0;
 bool isVibrating = false;
 
-// GPS Power Management (UBX Commands for u-blox M10/M8)
-void setGPSPower(bool on) {
-    if (on) {
-        // Wake up (send dummy bytes)
-        Serial1.write(0xFF);
-        delay(100);
-    } else {
-        // Send UBX-RXM-PMREQ (Backup Mode)
-        // Header: 0xB5 0x62, Class: 0x02, ID: 0x41, Len: 0x08
-        // Payload: Duration(0=Inf), Flags(2=Backup)
-        uint8_t packet[] = {
-            0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 
-            0x00, 0x00, 0x00, 0x00, 
-            0x02, 0x00, 0x00, 0x00,
-            0x4D, 0x3B // Checksum (Calculated)
-        };
-        Serial1.write(packet, sizeof(packet));
-    }
-}
+// Feature State
+bool isBeaconActive = false;
+bool isFlashlightOn = false;
+bool isSOSActive = false;
+unsigned long lastSOSUpdate = 0;
+int sosStep = 0;
+#define BEACON_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+BLEAdvertising *pAdvertising;
 
 void triggerVibration() {
     digitalWrite(VIB_PIN, HIGH);
@@ -88,10 +59,81 @@ void triggerVibration() {
     isVibrating = true;
 }
 
+void initBLE() {
+    BLEDevice::init("Emilie_Beacon");
+    BLEServer *pServer = BLEDevice::createServer();
+    pAdvertising = BLEDevice::getAdvertising();
+    BLEService *pService = pServer->createService(BEACON_UUID);
+    pAdvertising->addServiceUUID(BEACON_UUID);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->setMinPreferred(0x06);  
+    pAdvertising->setMinPreferred(0x12);
+}
+
+void setBeacon(bool enable) {
+    if (enable) {
+        BLEDevice::startAdvertising();
+        isBeaconActive = true;
+        Serial.println("BLE Beacon STARTED");
+    } else {
+        BLEDevice::stopAdvertising();
+        isBeaconActive = false;
+        Serial.println("BLE Beacon STOPPED");
+    }
+}
+
+void toggleFlashlight() {
+    isFlashlightOn = !isFlashlightOn;
+    isSOSActive = false; // Disable SOS if manual light is toggled
+    digitalWrite(FLASHLIGHT_PIN, isFlashlightOn ? HIGH : LOW);
+}
+
+void toggleSOS() {
+    isSOSActive = !isSOSActive;
+    isFlashlightOn = false; // Disable manual light
+    if (!isSOSActive) {
+        digitalWrite(FLASHLIGHT_PIN, LOW);
+    }
+}
+
+void updateSOS() {
+    if (!isSOSActive) return;
+    
+    unsigned long now = millis();
+    // SOS Pattern: ... --- ... (Dot=200ms, Dash=600ms, Gap=200ms, LetterGap=600ms, WordGap=1400ms)
+    // Simplified: 3 short, 3 long, 3 short
+    
+    const int DOT = 200;
+    const int DASH = 600;
+    const int GAP = 200;
+    
+    // Timing array for one cycle (On times and Off times interleaved)
+    // S (Dot, Gap, Dot, Gap, Dot, Gap) -> O (Dash, Gap, Dash, Gap, Dash, Gap) -> S (Dot, Gap, Dot, Gap, Dot, Gap) -> Pause
+    static const int pattern[] = {
+        DOT, GAP, DOT, GAP, DOT, GAP*3, // S
+        DASH, GAP, DASH, GAP, DASH, GAP*3, // O
+        DOT, GAP, DOT, GAP, DOT, GAP*7 // S + Pause
+    };
+    const int steps = sizeof(pattern) / sizeof(pattern[0]);
+    
+    if (now - lastSOSUpdate > pattern[sosStep]) {
+        lastSOSUpdate = now;
+        sosStep++;
+        if (sosStep >= steps) sosStep = 0;
+        
+        // Even steps are ON, Odd steps are OFF
+        digitalWrite(FLASHLIGHT_PIN, (sosStep % 2 == 0) ? HIGH : LOW);
+    }
+}
+
 // Objects
 TinyGPSPlus gps;
-MechaQMC5883 qmc;
+Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
 Preferences preferences;
+
+// U8g2 Display Object (SH1107 128x128 I2C)
+// Full framebuffer (F) for smooth animation
+U8G2_SH1107_128X128_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 // App Modes
 enum AppMode {
@@ -121,34 +163,8 @@ int clickCount = 0;
 unsigned long lastClickTime = 0;
 const int CLICK_DELAY = 400; // ms to wait for double click
 
-// Create display bus and display object
-Arduino_DataBus *bus = new Arduino_ESP32SPI(
-    TFT_DC,   // DC
-    TFT_CS,   // CS
-    TFT_SCK,  // SCK
-    TFT_MOSI, // MOSI
-    -1        // MISO (not used)
-);
-
-// ST7789 240x240
-Arduino_GFX *gfx = new Arduino_ST7789(
-    bus,
-    TFT_RST,      // RST
-    0,            // rotation (0 = portrait)
-    true,         // IPS panel
-    SCREEN_WIDTH, // width = 240
-    SCREEN_HEIGHT,// height = 240
-    0,            // col_offset1
-    0,            // row_offset1
-    0,            // col_offset2
-    0             // row_offset2
-);
-
-Arduino_Canvas *canvas = nullptr;
-Arduino_GFX *drawTarget = nullptr;
-
 // Helper: Draw Rotated Arrow (Fancy Needle)
-void drawArrow(Arduino_GFX *dst, int cx, int cy, int r, float angleDeg, uint16_t color) {
+void drawArrow(int cx, int cy, int r, float angleDeg) {
     float angleRad = (angleDeg - 90) * PI / 180.0; // -90 to point up at 0 deg
     
     // Tip
@@ -168,14 +184,40 @@ void drawArrow(Arduino_GFX *dst, int cx, int cy, int r, float angleDeg, uint16_t
     int y4 = cy + (r * 0.35) * sin(angleRad - PI/2);
     
     // Draw two triangles for the needle
-    dst->fillTriangle(x1, y1, x3, y3, x2, y2, color);
-    dst->fillTriangle(x1, y1, x4, y4, x2, y2, color);
+    u8g2.drawTriangle(x1, y1, x3, y3, x2, y2);
+    u8g2.drawTriangle(x1, y1, x4, y4, x2, y2);
     
     // Center Dot
-    dst->fillCircle(cx, cy, 3, C_GOLD);
+    u8g2.drawDisc(cx, cy, 3);
+}
+
+// Hilfsfunktion für kritische Fehler
+void fatalError(String message) {
+    Serial.println("\n!!! KRITISCHER FEHLER !!!");
+    Serial.println("Grund: " + message);
+    Serial.println("System wird in 5 Sekunden neu gestartet...");
+
+    // Falls eine Onboard-LED definiert ist, blinken wir hektisch
+    #ifdef LED_BUILTIN
+    pinMode(LED_BUILTIN, OUTPUT);
+    for(int i = 0; i < 20; i++) {
+        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+        delay(100);
+    }
+    #else
+    delay(2000);
+    #endif
+
+    Serial.println("Restarting...");
+    ESP.restart(); // Software-Reset durchführen
 }
 
 void setup() {
+    // Power on VExt for sensors (GPS, LoRa, OLED)
+    pinMode(VEXT_PIN, OUTPUT);
+    digitalWrite(VEXT_PIN, HIGH);
+    delay(100); // Wait for power to stabilize
+
     Serial.begin(115200);
     
     // Power Optimization: Turn off Radios
@@ -209,10 +251,6 @@ void setup() {
     delay(2000);
     Serial.println("\n\n=== ESP32-S3 Bring Em Home ===");
     
-    // Backlight Control
-    pinMode(TFT_BL, OUTPUT);
-    digitalWrite(TFT_BL, HIGH); // ON
-    
     // Button Setup
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     lastInteractionTime = millis();
@@ -221,51 +259,73 @@ void setup() {
     pinMode(VIB_PIN, OUTPUT);
     digitalWrite(VIB_PIN, LOW);
 
+    // Flashlight Setup
+    pinMode(FLASHLIGHT_PIN, OUTPUT);
+    digitalWrite(FLASHLIGHT_PIN, LOW);
+
     // Initialize Sensors
-    Wire.begin(I2C_SDA, I2C_SCL);
-    qmc.init();
+    if (!Wire.begin(I2C_SDA, I2C_SCL)) {
+        fatalError("I2C Bus Fehler!");
+    }
+    
+    // Initialize BNO055
+    if (!bno.begin()) {
+        Serial.println("No BNO055 detected ... Check your wiring or I2C ADDR!");
+        fatalError("BNO055 Error!");
+    }
+    bno.setExtCrystalUse(true);
+
+    // Initialize GPS (ATGM336H typically 9600 baud)
     Serial1.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-    setGPSPower(true); // Ensure GPS is awake
+    // GPS defaults to ON when powered
     
     // Initialize Preferences
-    preferences.begin("bringemhome", false);
-    homeLat = preferences.getDouble("lat", 0.0);
-    homeLon = preferences.getDouble("lon", 0.0);
-    hasHome = (homeLat != 0.0 && homeLon != 0.0);
-    Serial.printf("Home: %f, %f\n", homeLat, homeLon);
+    if (!preferences.begin("bringemhome", false)) {
+        fatalError("Preferences Init Failed!");
+    }
+    
+    // Smart Home Loading: Only load if NOT a fresh power-on
+    esp_reset_reason_t reason = esp_reset_reason();
+    if (reason == ESP_RST_POWERON) {
+        Serial.println("Power On Reset: Clearing Home for new hike.");
+        hasHome = false; 
+        // We don't delete from prefs yet, we just ignore it.
+        // It will be overwritten when we get a fix.
+    } else {
+        Serial.printf("Reset Reason: %d. Attempting to restore session.\n", reason);
+        homeLat = preferences.getDouble("lat", 0.0);
+        homeLon = preferences.getDouble("lon", 0.0);
+        hasHome = (homeLat != 0.0 && homeLon != 0.0);
+    }
+    Serial.printf("Home: %f, %f (HasHome: %d)\n", homeLat, homeLon, hasHome);
     
     startTime = millis(); // Start timer for auto-home
 
     // Initialize display
-    if (!gfx->begin()) {
-        Serial.println("ERROR: gfx->begin() failed!");
-        while(1) { delay(1000); }
-    }
+    u8g2.begin();
+    u8g2.setDrawColor(1); // White
+    u8g2.setFontPosTop(); // Easier coordinate handling
+    
+    initBLE(); // Prepare BLE
     
     // Memory Debugging
     Serial.printf("Total Heap: %d, Free Heap: %d\n", ESP.getHeapSize(), ESP.getFreeHeap());
     Serial.printf("Total PSRAM: %d, Free PSRAM: %d\n", ESP.getPsramSize(), ESP.getFreePsram());
 
-    // Canvas removed for stability (caused crash due to low RAM)
-    // We will draw directly to gfx
-    drawTarget = gfx;
-
-    gfx->fillScreen(BLACK);
+    u8g2.clearBuffer();
     
-    // Elegant Splash Screen
-    gfx->drawFastHLine(20, 80, 200, C_SILVER);
+    // Splash Screen
+    u8g2.drawHLine(10, 40, 108);
     
-    gfx->setCursor(10, 100); // Adjusted X for larger text
-    gfx->setTextColor(C_EMERALD);
-    gfx->setTextSize(3); // Larger Title
-    gfx->println("Bring Em Home");
+    u8g2.setFont(u8g2_font_ncenB10_tr);
+    u8g2.drawStr(15, 60, "Bring Em");
+    u8g2.drawStr(35, 80, "Home");
     
-    gfx->drawFastHLine(20, 140, 200, C_SILVER);
+    u8g2.drawHLine(10, 90, 108);
     
-    gfx->setCursor(25, 180); // Adjusted X
-    gfx->setTextColor(C_GOLD);
-    gfx->setTextSize(2); // Larger Subtitle
-    gfx->println("Waiting for GPS...");
+    u8g2.setFont(u8g2_font_6x10_tr);
+    u8g2.drawStr(20, 110, "Waiting for GPS...");
+    u8g2.sendBuffer();
 }
 
 void loop() {
@@ -275,10 +335,13 @@ void loop() {
     }
 
     // 2. Process Compass
-    uint16_t x, y, z;
-    float heading;
-    qmc.read(&x, &y, &z, &heading);
-    currentHeading = (int)heading;
+    sensors_event_t orientationData;
+    bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
+    currentHeading = (int)orientationData.orientation.x;
+
+    // Get Calibration Status (0=Uncalibrated, 3=Fully Calibrated)
+    uint8_t sys, gyro, accel, mag = 0;
+    bno.getCalibration(&sys, &gyro, &accel, &mag);
 
     // 3. Button Logic
     bool currentButtonState = digitalRead(BUTTON_PIN);
@@ -293,72 +356,21 @@ void loop() {
     if (currentButtonState == LOW) {
         unsigned long pressDuration = millis() - buttonPressStartTime;
         
-        // 2s: Save Home (Only in Recording Mode, One shot)
-        if (!isLongPressHandled && pressDuration > 2000 && pressDuration < 5000) {
-            if (currentMode == MODE_RECORDING) {
-                Serial.println("Long Press: Saving Home");
-                if (gps.location.isValid()) {
-                    homeLat = gps.location.lat();
-                    homeLon = gps.location.lng();
-                    hasHome = true;
-                    preferences.putDouble("lat", homeLat);
-                    preferences.putDouble("lon", homeLon);
-                    
-                    // Visual Feedback
-                    if (!isDisplayOn) { 
-                        digitalWrite(TFT_BL, HIGH); 
-                        isDisplayOn = true; 
-                        setCpuFrequencyMhz(240);
-                    }
-                    gfx->fillScreen(C_EMERALD);
-                    gfx->setCursor(40, 110);
-                    gfx->setTextColor(BLACK);
-                    gfx->setTextSize(2);
-                    gfx->println("HOME SAVED!");
-                    delay(1000);
-                    gfx->fillScreen(BLACK);
-                } else {
-                    // Error Feedback
-                    if (!isDisplayOn) { 
-                        digitalWrite(TFT_BL, HIGH); 
-                        isDisplayOn = true; 
-                        setCpuFrequencyMhz(240);
-                    }
-                    gfx->fillScreen(C_RUBY);
-                    gfx->setCursor(40, 110);
-                    gfx->setTextColor(WHITE);
-                    gfx->setTextSize(2);
-                    gfx->println("NO GPS FIX!");
-                    delay(1000);
-                    gfx->fillScreen(BLACK);
-                }
-            }
-            isLongPressHandled = true; // Prevent repeat
-            lastInteractionTime = millis();
-        }
-        
-        // 5s: Power Off (Deep Sleep)
-        if (pressDuration > 5000) {
-            // Feedback
-            if (!isDisplayOn) { digitalWrite(TFT_BL, HIGH); }
-            setCpuFrequencyMhz(240);
-            gfx->fillScreen(BLACK);
-            gfx->setCursor(40, 100);
-            gfx->setTextColor(C_SILVER);
-            gfx->setTextSize(2);
-            gfx->println("GOODBYE");
+        // 3s: Toggle Beacon (One shot)
+        if (!isLongPressHandled && pressDuration > 3000) {
+            setBeacon(!isBeaconActive);
+            triggerVibration();
+            isLongPressHandled = true;
+            
+            // Visual Feedback
+            if (!isDisplayOn) { u8g2.setPowerSave(0); isDisplayOn = true; }
+            u8g2.clearBuffer();
+            u8g2.setFont(u8g2_font_ncenB14_tr);
+            u8g2.drawStr(10, 50, isBeaconActive ? "BEACON" : "BEACON");
+            u8g2.drawStr(30, 80, isBeaconActive ? "ON" : "OFF");
+            u8g2.sendBuffer();
             delay(1000);
-            digitalWrite(TFT_BL, LOW);
-            
-            // Turn off GPS
-            setGPSPower(false);
-            
-            // Configure Wakeup
-            esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, 0); // Wake on LOW
-            
-            // Go to Sleep
-            Serial.println("Entering Deep Sleep...");
-            esp_deep_sleep_start();
+            lastInteractionTime = millis();
         }
     }
     
@@ -377,11 +389,11 @@ void loop() {
         if (clickCount == 1) {
             // Single Click: Toggle Display
             if (isDisplayOn) {
-                digitalWrite(TFT_BL, LOW);
+                u8g2.setPowerSave(1); // Display OFF
                 isDisplayOn = false;
                 setCpuFrequencyMhz(80); // Low power mode
             } else {
-                digitalWrite(TFT_BL, HIGH);
+                u8g2.setPowerSave(0); // Display ON
                 isDisplayOn = true;
                 setCpuFrequencyMhz(240); // High performance mode
                 lastInteractionTime = millis();
@@ -408,48 +420,67 @@ void loop() {
                 
                 // Feedback
                 if (!isDisplayOn) { 
-                    digitalWrite(TFT_BL, HIGH); 
+                    u8g2.setPowerSave(0); 
                     isDisplayOn = true; 
                     setCpuFrequencyMhz(240);
                 }
-                gfx->fillScreen(C_RUBY);
-                gfx->setCursor(40, 110);
-                gfx->setTextColor(WHITE);
-                gfx->setTextSize(2);
-                gfx->println("RETURN MODE");
+                u8g2.clearBuffer();
+                u8g2.setFont(u8g2_font_ncenB12_tr);
+                u8g2.drawStr(20, 60, "RETURN");
+                u8g2.sendBuffer();
                 delay(1000);
-                gfx->fillScreen(BLACK);
             } else {
                 currentMode = MODE_RECORDING;
                 // Feedback
                 if (!isDisplayOn) { 
-                    digitalWrite(TFT_BL, HIGH); 
+                    u8g2.setPowerSave(0); 
                     isDisplayOn = true; 
                     setCpuFrequencyMhz(240);
                 }
-                gfx->fillScreen(C_EMERALD);
-                gfx->setCursor(40, 110);
-                gfx->setTextColor(BLACK);
-                gfx->setTextSize(2);
-                gfx->println("EXPLORE MODE");
+                u8g2.clearBuffer();
+                u8g2.setFont(u8g2_font_ncenB12_tr);
+                u8g2.drawStr(20, 60, "EXPLORE");
+                u8g2.sendBuffer();
                 delay(1000);
-                gfx->fillScreen(BLACK);
             }
             lastInteractionTime = millis();
+        } else if (clickCount == 3) {
+            // Triple Click: Flashlight
+            toggleFlashlight();
+            triggerVibration();
+        } else if (clickCount >= 4) {
+            // Quad Click: SOS
+            toggleSOS();
+            triggerVibration();
+            delay(100);
+            triggerVibration();
         }
         clickCount = 0;
     }
 
-    // 4. Auto-Home Logic (5 minutes)
+    // 4. Auto-Home Logic (Immediate on Fix if not set)
     if (!hasHome && gps.location.isValid()) {
-        if (millis() - startTime > 300000) { // 5 mins
-            homeLat = gps.location.lat();
-            homeLon = gps.location.lng();
-            hasHome = true;
-            preferences.putDouble("lat", homeLat);
-            preferences.putDouble("lon", homeLon);
-            Serial.println("Auto-Home Set!");
-        }
+        // Removed 5 min timer check - Set immediately on first fix
+        homeLat = gps.location.lat();
+        homeLon = gps.location.lng();
+        hasHome = true;
+        preferences.putDouble("lat", homeLat);
+        preferences.putDouble("lon", homeLon);
+        Serial.println("Auto-Home Set (First Fix)!");
+        
+        // Visual Feedback
+        if (!isDisplayOn) { u8g2.setPowerSave(0); isDisplayOn = true; }
+        u8g2.clearBuffer();
+        u8g2.setFont(u8g2_font_ncenB12_tr);
+        u8g2.drawStr(10, 50, "HOME SET!");
+        u8g2.setFont(u8g2_font_6x10_tr);
+        u8g2.setCursor(10, 80);
+        u8g2.print("Lat: "); u8g2.print(homeLat, 4);
+        u8g2.setCursor(10, 95);
+        u8g2.print("Lon: "); u8g2.print(homeLon, 4);
+        u8g2.sendBuffer();
+        delay(2000);
+        lastInteractionTime = millis();
     }
 
     // 5. Breadcrumb Logic (Recording)
@@ -497,7 +528,7 @@ void loop() {
 
     // 8. Display Timeout
     if (isDisplayOn && (millis() - lastInteractionTime > DISPLAY_TIMEOUT)) {
-        digitalWrite(TFT_BL, LOW);
+        u8g2.setPowerSave(1); // Display OFF
         isDisplayOn = false;
         setCpuFrequencyMhz(80); // Low power mode
     }
@@ -508,34 +539,37 @@ void loop() {
         if (millis() - lastUpdate > 100) { // 10Hz update for smooth compass
             lastUpdate = millis();
             
-            // Use drawTarget (either canvas or gfx)
-            drawTarget->fillScreen(BLACK);
+            u8g2.clearBuffer();
             
             // --- Header ---
             // Top Line
-            drawTarget->drawFastHLine(20, 40, 200, C_SILVER); // Moved down slightly
+            u8g2.drawHLine(0, 15, 128);
             
-            // Mode Title (Centered)
-            drawTarget->setTextSize(3); // Larger Title
-            String title = (currentMode == MODE_RECORDING) ? "EXPLORE" : "RETURN";
-            uint16_t titleColor = (currentMode == MODE_RECORDING) ? C_EMERALD : C_RUBY;
-            
-            int16_t x1, y1;
-            uint16_t w, h;
-            drawTarget->getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
-            drawTarget->setCursor((SCREEN_WIDTH - w) / 2, 10);
-            drawTarget->setTextColor(titleColor);
-            drawTarget->print(title);
+            // Status Icons (Top Left)
+            u8g2.setFont(u8g2_font_5x7_tr);
+            u8g2.setCursor(0, 0);
+            if (isBeaconActive) u8g2.print("B ");
+            if (isFlashlightOn) u8g2.print("L ");
+            if (isSOSActive) u8g2.print("SOS ");
 
-            // Satellites (Small, Top Right)
-            drawTarget->setTextSize(2); // Larger Sat count
-            drawTarget->setTextColor(C_SILVER);
-            drawTarget->setCursor(200, 5);
+            // Mode Title (Centered)
+            u8g2.setFont(u8g2_font_6x12_tr);
+            String title = (currentMode == MODE_RECORDING) ? "EXPLORE" : "RETURN";
+            int w = u8g2.getStrWidth(title.c_str());
+            u8g2.setCursor((SCREEN_WIDTH - w) / 2, 2);
+            u8g2.print(title);
+
+            // Satellites (Top Right)
+            u8g2.setCursor(110, 0);
             if (gps.location.isValid()) {
-                drawTarget->printf("%d", gps.satellites.value());
+                u8g2.print(gps.satellites.value());
             } else {
-                drawTarget->print("X");
+                u8g2.print("X");
             }
+
+            // Calibration (Small, Left of Sats)
+            u8g2.setCursor(90, 0);
+            u8g2.printf("M:%d", mag);
 
             // --- Main Content ---
             
@@ -554,7 +588,6 @@ void loop() {
             double dist = 0;
             double bearing = 0;
             bool showArrow = false;
-            uint16_t arrowColor = C_SILVER;
 
             if (currentMode == MODE_RECORDING) {
                  // Compass Mode - Always Active
@@ -563,14 +596,12 @@ void loop() {
                  }
                  bearing = 0; // North
                  showArrow = true;
-                 arrowColor = C_EMERALD;
             } else {
                 // Backtrack Mode - Needs GPS
                 if (gps.location.isValid()) {
                     dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), targetLat, targetLon);
                     bearing = gps.courseTo(gps.location.lat(), gps.location.lng(), targetLat, targetLon);
                     showArrow = true;
-                    arrowColor = C_RUBY;
                 }
             }
 
@@ -580,67 +611,54 @@ void loop() {
                 if (relBearing < 0) relBearing += 360;
                 
                 // Draw fancy needle
-                int arrowCy = 115; // Centered vertically in upper section
-                drawArrow(drawTarget, SCREEN_WIDTH/2, arrowCy, 60, relBearing, arrowColor);
+                int arrowCy = 64; // Center of screen
+                drawArrow(SCREEN_WIDTH/2, arrowCy, 35, relBearing);
                 
                 // N indicator for Recording mode
                 if (currentMode == MODE_RECORDING) {
                     float angleRad = (relBearing - 90) * PI / 180.0;
-                    int nx = (SCREEN_WIDTH/2) + 75 * cos(angleRad);
-                    int ny = arrowCy + 75 * sin(angleRad);
-                    drawTarget->setCursor(nx-9, ny-9); // Adjusted for larger font
-                    drawTarget->setTextColor(C_EMERALD);
-                    drawTarget->setTextSize(3); // Larger N
-                    drawTarget->print("N");
+                    int nx = (SCREEN_WIDTH/2) + 45 * cos(angleRad);
+                    int ny = arrowCy + 45 * sin(angleRad);
+                    u8g2.setFont(u8g2_font_ncenB10_tr);
+                    u8g2.setCursor(nx-5, ny-5);
+                    u8g2.print("N");
                 }
             } else {
                 // No GPS (Backtracking) or No Home (Recording - but arrow is always shown now)
                 if (currentMode == MODE_BACKTRACKING && !gps.location.isValid()) {
-                    drawTarget->setCursor(50, 140); // Adjusted X
-                    drawTarget->setTextColor(C_RUBY);
-                    drawTarget->setTextSize(3); // Larger Warning
-                    drawTarget->print("NO GPS");
+                    u8g2.setFont(u8g2_font_ncenB10_tr);
+                    u8g2.drawStr(35, 60, "NO GPS");
                 }
             }
 
-            // Distance Text (Below Arrow)
+            // Distance Text (Bottom)
             if (gps.location.isValid() && (hasHome || currentMode == MODE_BACKTRACKING)) {
                 String distStr;
                 if (dist < 1000) distStr = String(dist, 0) + " m";
                 else distStr = String(dist / 1000.0, 2) + " km";
                 
-                drawTarget->setTextSize(4); // Huge Distance
-                drawTarget->getTextBounds(distStr, 0, 0, &x1, &y1, &w, &h);
-                drawTarget->setCursor((SCREEN_WIDTH - w) / 2, 185); // Moved up slightly
-                drawTarget->setTextColor(WHITE);
-                drawTarget->print(distStr);
+                u8g2.setFont(u8g2_font_ncenB14_tr);
+                w = u8g2.getStrWidth(distStr.c_str());
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 100);
+                u8g2.print(distStr);
                 
                 // Label
                 String label = targetIsHome ? "HOME" : "WAYPOINT";
-                drawTarget->setTextSize(2); // Larger Label
-                drawTarget->getTextBounds(label, 0, 0, &x1, &y1, &w, &h);
-                drawTarget->setCursor((SCREEN_WIDTH - w) / 2, 220);
-                drawTarget->setTextColor(C_GOLD);
-                drawTarget->print(label);
+                u8g2.setFont(u8g2_font_6x10_tr);
+                w = u8g2.getStrWidth(label.c_str());
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 120); // Bottom
+                u8g2.print(label);
             } else if (currentMode == MODE_RECORDING && !hasHome) {
-                 // Show "SET HOME" if we have GPS but no home, or just hint
                  if (gps.location.isValid()) {
-                    drawTarget->setCursor(40, 190);
-                    drawTarget->setTextColor(C_GOLD);
-                    drawTarget->setTextSize(3); // Larger
-                    drawTarget->print("SET HOME");
+                    u8g2.setFont(u8g2_font_ncenB10_tr);
+                    u8g2.drawStr(25, 110, "SET HOME");
                  } else {
-                    drawTarget->setCursor(40, 190);
-                    drawTarget->setTextColor(C_SILVER);
-                    drawTarget->setTextSize(2); // Larger
-                    drawTarget->print("WAITING GPS");
+                    u8g2.setFont(u8g2_font_6x10_tr);
+                    u8g2.drawStr(25, 110, "WAITING GPS");
                  }
             }
 
-            // Flush Canvas to Display (only if using canvas)
-            if (canvas != nullptr) {
-                canvas->flush();
-            }
+            u8g2.sendBuffer();
         }
     }
     

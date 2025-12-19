@@ -3,103 +3,66 @@
 ## Components List
 
 ### Main Components
-1. **Waveshare ESP32-S3 Touch LCD 1.47"**
-   - **Core**: ESP32-S3R8 (Xtensa 32-bit LX7 dual-core, up to 240MHz)
-   - **Memory**: 16MB Flash, 8MB PSRAM
-   - **Display**: 1.47" IPS LCD, 172x320 pixels, JD9853 driver
-   - **Touch**: Capacitive touchscreen, AXS5106L driver
-   - **Wireless**: 2.4GHz Wi-Fi & Bluetooth 5 (LE)
-   - **Power**: ETA6098 Battery Charger, ME6217C33M5G LDO (800mA)
-   - **Storage**: Onboard TF card slot
-   - **Interface**: USB-C, Onboard Antenna
-   - [Product Link](https://www.waveshare.com/esp32-s3-touch-lcd-1.47.htm) | [Wiki](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-1.47) | [Schematic](https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-1.47/ESP32-S3-Touch-LCD-1.47-Schematic.pdf)
+1. **Heltec Wireless Tracker (V1.1)**
+   - **Core**: ESP32-S3 + SX1262 LoRa + UC6580 GNSS
+   - **Display**: Onboard 0.96" TFT (Optional use)
+   - **Power**: Built-in LiPo Charger
 
-2. **HGLRC M100-5883 M10 GPS Module**
-   - u-blox M10 GPS receiver
-   - Integrated HMC5883L magnetometer/compass
-   - UART interface for GPS
-   - I2C interface for compass
-   - External antenna support
+2. **1.5" OLED Display**
+   - **Driver**: SH1107
+   - **Resolution**: 128x128 pixels
+   - **Interface**: I2C (4-pin)
 
-### Additional Materials
-- Jumper wires (female-to-female recommended)
-- USB-C cable for programming and power
-- Optional: Battery pack for portable use
-- Optional: 3D printed enclosure
+3. **Bosch BNO055 9-Axis IMU**
+   - Absolute Orientation Sensor
+   - I2C interface
+
+### Peripherals
+- **Button**: Waterproof momentary push button
+- **Vibration Motor**: 3V coin vibration motor
+- **LED**: High Power LED (with appropriate driver/transistor)
 
 ## Pinout Diagram
 
-### ESP32-S3 to GPS Module
+### Internal Components (No Wiring Needed)
+- **GPS**: Connected internally (RX=34, TX=33)
+- **LoRa**: Connected internally (SPI)
+
+### I2C Bus (Shared: BNO055 Compass & SH1107 OLED)
 
 ```
-ESP32-S3              GPS Module (M100-5883)
-========              ======================
-GPIO 18 (RX1) <-----> TX (GPS UART)
-GPIO 17 (TX1) <-----> RX (GPS UART)
-5V            ------> VCC
-GND           ------> GND
+Heltec Board          Devices (Parallel Connection)
+============          =============================
+GPIO 41 (SDA) <-----> BNO055 SDA & OLED SDA
+GPIO 42 (SCL) <-----> BNO055 SCL & OLED SCL
+3V3           ------> BNO055 VCC & OLED VCC
+GND           ------> BNO055 GND & OLED GND
 ```
 
-### ESP32-S3 to Compass (I2C on GPS Module)
+### Peripherals
 
 ```
-ESP32-S3              HMC5883L (on GPS Module)
-========              ========================
-GPIO 8 (SDA)  <-----> SDA
-GPIO 9 (SCL)  <-----> SCL
-3.3V          ------> VCC
-GND           ------> GND
-```
-
-### Display (Built-in on Waveshare Board)
-
-The display is pre-wired on the Waveshare ESP32-S3 Touch LCD board:
-
-```
-Display Pin    ESP32-S3 GPIO
-===========    =============
-CS      -----> GPIO 10
-DC      -----> GPIO 13
-RST     -----> GPIO 14
-MOSI    -----> GPIO 11
-SCLK    -----> GPIO 12
-BLK     -----> GPIO 38
+Component      Heltec GPIO
+=========      ===========
+Button         GPIO 0 (PRG Button or External)
+Vibration      GPIO 7
+Flashlight     GPIO 5
 ```
 
 ## Assembly Instructions
 
-### Step 1: GPS Module Connection
+### Step 1: Compass/IMU & OLED Connection
 
-1. Identify the GPS module's UART pins:
-   - TX (transmit from GPS)
-   - RX (receive to GPS)
-   - VCC (5V power)
-   - GND (ground)
+Connect the BNO055 and OLED via I2C to the Heltec Header:
 
-2. Connect to ESP32-S3:
+1. Locate the I2C pins on the Heltec Board (SDA=41, SCL=42).
+2. Connect both devices in parallel:
    ```
-   GPS TX  → ESP32 GPIO 18
-   GPS RX  → ESP32 GPIO 17
-   GPS VCC → ESP32 5V
-   GPS GND → ESP32 GND
+   Heltec SDA (41) → BNO055 SDA & OLED SDA
+   Heltec SCL (42) → BNO055 SCL & OLED SCL
+   Heltec 3V3      → BNO055 VCC & OLED VCC
+   Heltec GND      → BNO055 GND & OLED GND
    ```
-
-### Step 2: Compass/Magnetometer Connection
-
-The HMC5883L compass is integrated on the GPS module board:
-
-1. Locate the I2C pins (usually separate from GPS UART):
-   - SDA (data line)
-   - SCL (clock line)
-   - VCC (3.3V recommended)
-   - GND (ground)
-
-2. Connect to ESP32-S3:
-   ```
-   Compass SDA → ESP32 GPIO 8
-   Compass SCL → ESP32 GPIO 9
-   Compass VCC → ESP32 3.3V
-   Compass GND → ESP32 GND
    ```
 
 ### Step 3: Power Connection

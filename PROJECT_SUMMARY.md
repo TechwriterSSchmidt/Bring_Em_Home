@@ -19,35 +19,44 @@ Create a portable, easy-to-use device that:
 
 | Component | Model | Purpose |
 |-----------|-------|---------|
-| Microcontroller | ESP32-S3R8 | Processing, WiFi/BLE capable, 16MB Flash/8MB PSRAM |
-| Display | Waveshare 1.47" Touch LCD | 172x320 color display |
-| GPS Module | HGLRC M100-5883 M10 | u-blox M10 GPS receiver |
-| Compass | HMC5883L | Integrated in GPS module |
-| Interface | USB-C | Programming and power |
+| Main Board | **Heltec Wireless Tracker (V1.1)** | ESP32-S3 + LoRa (SX1262) + GPS (UC6580) |
+| Display | **1.5" OLED (SH1107)** | 128x128 Monochrome, High Contrast |
+| Compass | **Bosch BNO055** | Absolute Orientation (Heading) |
+| Interface | USB-C | Programming and Charging |
 
-**Total Cost**: ~$50-85
+**Total Cost**: ~$60-90
 
 ## 💻 Software Implementation
 
 ### Code Statistics
-- **Main Application**: 415 lines of C++
-- **Configuration**: 24 lines (platformio.ini)
-- **Total Code**: 439 lines
+- **Main Application**: ~600 lines of C++
+- **Configuration**: platformio.ini (Heltec environment)
 
 ### Libraries Used
-- **TinyGPSPlus**: GPS NMEA sentence parsing
-- **Adafruit GFX/ST7789**: Display graphics
-- **Adafruit HMC5883**: Magnetometer interface
-- **Preferences**: Non-volatile storage
+- **TinyGPSPlus**: GPS NMEA parsing
+- **U8g2**: Monochrome OLED graphics (SH1107 driver)
+- **Adafruit BNO055**: Sensor fusion interface
+- **Preferences**: Non-volatile storage for Home location
 
 ### Key Features Implemented
 
-#### 1. GPS Tracking
-```cpp
-- Real-time coordinate display (lat/lon)
-- Satellite count monitoring
-- GPS lock status indication
-- Continuous position updates
+#### 1. GPS & LoRa Integration
+- Uses internal UC6580 GNSS for positioning.
+- Ready for SX1262 LoRa long-range tracking.
+- **VEXT Control**: Manages power to sensors for battery life.
+
+#### 2. Navigation Logic
+- **Home Point**: Saved to non-volatile memory.
+- **Breadcrumbs**: Records path points every 250m.
+- **Compass Fusion**: Combines GPS bearing with magnetic heading.
+
+#### 3. User Interface (OLED)
+- **Monochrome UI**: Optimized for high contrast/sunlight.
+- **Screens**:
+  - "Waiting for GPS"
+  - "Recording" (Speed, Dist, Satellites)
+  - "Backtracking" (Big Arrow, Distance)
+
 ```
 
 #### 2. Compass/Heading

@@ -1,50 +1,59 @@
 # Bring Em Home 🧭
 
-A GPS navigation device to guide Emilie back to her starting location when lost on hikes.
+A robust GPS navigation and safety device designed to help hikers find their way back to a starting location. Built on the **Heltec Wireless Tracker** platform for maximum reliability.
 
 ## Overview
 
-This device uses GPS and compass sensors to help navigate back to a saved "home" position. Perfect for hikers who want peace of mind knowing they can always find their way back to their starting point.
+This device uses GPS and a high-precision compass to guide the user back to a saved "home" position. It features a high-contrast OLED display for visibility in all lighting conditions and includes safety features like LoRa tracking and an SOS beacon.
 
 ## Hardware Requirements
 
-- **ESP32-S3 Development Board** with [Waveshare ESP32-S3-LCD-1.3 (240x240)](https://www.waveshare.com/esp32-s3-lcd-1.28.htm) (Note: Link is for similar family, specific 1.3" square model used)
-- **HGLRC M100-5883 M10 GPS Module** with integrated HMC5883L compass
-- Connecting wires
-- USB cable for programming and power
+- **Heltec Wireless Tracker (V1.1)**
+  - Integrated ESP32-S3, SX1262 LoRa, and UC6580 GNSS.
+- **1.5" OLED Display**
+  - SH1107 Driver, 128x128 resolution, I2C interface.
+- **Bosch BNO055 9-Axis Absolute Orientation Sensor**
+  - For precise compass heading.
+- **Peripherals (Optional)**
+  - Vibration Motor
+  - High Power LED (Flashlight)
+  - External Button
 
 ## Hardware Connections
 
-### GPS Module (UART Connection)
-- GPS TX → ESP32-S3 GPIO 18 (RX)
-- GPS RX → ESP32-S3 GPIO 17 (TX)
-- GPS VCC → 5V
-- GPS GND → GND
+The Heltec Wireless Tracker integrates most components, simplifying the wiring significantly.
 
-### Compass/Magnetometer (I2C Connection)
-The HMC5883L compass is integrated in the GPS module:
-- SDA → ESP32-S3 GPIO 8
-- SCL → ESP32-S3 GPIO 9
-- VCC → 3.3V
-- GND → GND
+### I2C Bus (Shared: BNO055 Compass & SH1107 OLED)
+- **SDA**: GPIO 41
+- **SCL**: GPIO 42
+- **VCC**: 3.3V
+- **GND**: GND
 
-### Display
-The Waveshare ESP32-S3-LCD-1.3 display is built into the board:
-- Display Driver: ST7789
-- Resolution: 240x240
-- Pre-wired to the following pins:
-  - CS: GPIO 39
-  - DC: GPIO 38
-  - RST: GPIO 42
-  - MOSI: GPIO 41
-  - SCLK: GPIO 40
-  - Backlight: GPIO 45
+### Peripherals
+- **Button**: GPIO 0 (Built-in "PRG" button or external)
+- **Vibration Motor**: GPIO 7
+- **Flashlight LED**: GPIO 5
 
-### Buttons
-- **External Waterproof Button (GPIO 14)**:
-  - **Short Press**: Toggle Display ON / OFF (Timer resets to 5 min when turned ON)
-  - **Long Press (> 2s)**: Save current position as home
-- **BOOT Button (GPIO 0)**: Not used in housing
+## Features
+- **GPS Navigation**: Breadcrumb tracking and "Return Home" arrow.
+- **High-Contrast Display**: 128x128 OLED for excellent readability.
+- **LoRa Connectivity**: Ready for long-range tracking (SX1262).
+- **BLE Beacon**: Broadcasts "Emilie_Beacon" for close-range finding.
+- **Flashlight**: High power LED mode.
+- **SOS Signal**: Automatic SOS Morse code flashing.
+- **Vibration Feedback**: Haptic feedback for interactions.
+- **Fail-Safe**: Auto-restart on hardware failure.
+
+## Getting Started
+
+1. **Assemble Hardware**: Connect the OLED and BNO055 to the I2C pins (41/42).
+2. **Flash Firmware**: Use PlatformIO to upload the code.
+3. **Go Outside**: The device needs a clear view of the sky to get a GPS lock.
+4. **Set Home**: Long-press the button to save your current location as "Home".
+5. **Navigate**: Follow the arrow on the display to return.
+
+## License
+MIT License
 
 ## Software Setup
 
@@ -80,7 +89,8 @@ The Waveshare ESP32-S3-LCD-1.3 display is built into the board:
 1. Install the following libraries via Library Manager:
    - TinyGPSPlus
    - GFX Library for Arduino (MoonOnOurNation)
-   - MechaQMC5883 (Mechasolution)
+   - Adafruit BNO055
+   - Adafruit Unified Sensor
 
 2. Select Board: "ESP32S3 Dev Module"
 3. Set partition scheme to default
@@ -90,10 +100,11 @@ The Waveshare ESP32-S3-LCD-1.3 display is built into the board:
 
 ### First Time Setup
 
-1. Power on the device
-2. Wait for GPS to acquire satellite lock (may take 1-5 minutes outdoors with clear sky view)
-3. Once GPS shows valid coordinates, **press and hold the external button for 2 seconds** to save your current position as "home"
-4. The screen will flash green and show "HOME SAVED!"
+1. **Power On**: Switch the device ON using the physical switch.
+2. **Wait for GPS**: The device will automatically search for satellites.
+3. **Auto-Save**: As soon as a valid GPS fix is obtained, the current location is **automatically saved as Home**.
+   - The screen will flash **GREEN** and show "HOME SET!".
+   - No button press is required.
 
 ### Navigation
 
@@ -143,8 +154,9 @@ The display shows:
 ## Features
 
 - ✅ Real-time GPS coordinate display
-- ✅ Save home position with button press (Long Press)
-- ✅ Auto-save Home position after 5 minutes if not set
+- ✅ **Smart Auto-Home**: Automatically sets home on power-up when GPS fix is found.
+- ✅ **Crash Recovery**: Restores home position if device restarts due to software error.
+- ✅ Save home position manually with button press (Long Press)
 - ✅ Breadcrumb trail (auto-save every 250m)
 - ✅ Backtracking mode to retrace steps
 - ✅ Calculate distance to home/waypoint

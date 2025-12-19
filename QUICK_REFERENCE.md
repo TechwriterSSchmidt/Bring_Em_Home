@@ -2,52 +2,44 @@
 
 ## 🚀 Quick Start (First Use)
 
-1. ⚡ Plug in USB-C cable
+1. ⚡ Plug in USB-C cable (or ensure battery is charged)
 2. ⏰ Wait for GPS lock (1-5 min outdoors)
-3. 📍 Press BOOT button to save home
-4. ✅ Screen flashes green = Home saved!
+   - *Screen says: "Waiting for GPS..."*
+3. 📍 Long-Press Button (2s) to save home
+4. ✅ Screen shows "Home Saved!"
 
 ## 🎯 Navigation
 
-### Follow the Arrow Method (Easiest!)
-1. 👀 Look at green arrow on right side
-2. 🔄 Turn until arrow points UP ⬆️
+### Follow the Arrow Method
+1. 👀 Look at the big arrow on the OLED
+2. 🔄 Turn until arrow points **UP** ⬆️
 3. 🚶 Walk straight ahead
-4. 🔁 Keep checking as you move
-5. 🏠 Distance < 10m = You're home!
+4. 🏠 Distance counts down as you get closer
 
-### Compass & Bearing Method
-1. 📋 Note the **Bearing** number (e.g., 270°)
-2. 🔄 Turn until **Heading** = **Bearing**
-3. 🚶 Walk maintaining that heading
-4. ✅ Re-check every few minutes
+## 📱 Display Guide (OLED)
 
-## 📱 Display Color Guide
-
-| Color | Meaning |
-|-------|---------|
-| 🟢 Green | GPS locked, navigation active |
-| 🔴 Red | GPS searching (no lock) |
-| 🟡 Yellow | Title, home status |
-| 🔵 Cyan | Coordinates |
-| 🟣 Magenta | Compass heading |
-| 🟠 Orange | Warnings |
+| Screen | Meaning |
+|--------|---------|
+| **Waiting...** | Searching for satellites. Go outside! |
+| **Recording** | Tracking your hike. Shows Speed & Dist. |
+| **Backtracking** | Guiding you home. Shows Arrow & Dist. |
 
 ## 🔘 Button Functions
 
-| Button | Function |
-|--------|----------|
-| BOOT (GPIO 0) | Save current position as home |
-| (long press) | Hold 1 second to save |
+| Button | Action | Function |
+|--------|--------|----------|
+| **PRG / GPIO 0** | Click | Toggle Info Screens |
+| | Hold (2s) | **Save Home Position** |
+| | Hold (5s) | Reset / Clear Home |
+| | 3x Click | Toggle Flashlight |
+| | 4x Click | SOS Mode |
 
-## 📊 Display Information
+## 📊 Technical Info
 
-```
-┌────────────────────────────┐
-│ Bring Em Home              │ ← Title
-│ GPS: LOCKED  Sats: 8       │ ← Status & Satellites
-│ Lat: 48.123456             │ ← Your position
-│ Lon: 11.123456             │
+- **GPS**: Internal UC6580
+- **LoRa**: Internal SX1262 (868 MHz)
+- **Compass**: External BNO055 (I2C Addr 0x28)
+- **Display**: External SH1107 (I2C Addr 0x3C)
 │ Heading: 045°              │ ← Direction facing
 │ HOME POSITION SET          │
 │ Distance: 345 m            │ ← How far to home
