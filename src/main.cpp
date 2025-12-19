@@ -21,6 +21,13 @@
 #define CYAN    0x07FF
 #define MAGENTA 0xF81F
 
+// Elegant Palette
+#define C_GOLD       0xFEA0 
+#define C_EMERALD    0x05E6
+#define C_RUBY       0xC804
+#define C_SILVER     0xC618
+#define C_DARK       0x10A2
+
 // ESP32-S3-LCD-1.3 Pin Configuration
 // Based on nishad2m8/WS-1.3 User_Setup.h
 #define TFT_MOSI  41
@@ -30,6 +37,7 @@
 #define TFT_RST   42
 #define TFT_BL    45 
 #define BUTTON_PIN 14 // External waterproof button
+#define VIB_PIN 13    // Vibration Motor
 
 // Sensor Pins
 #define GPS_RX 17
@@ -48,6 +56,16 @@ bool isDisplayOn = true;
 bool lastButtonState = HIGH;
 unsigned long buttonPressStartTime = 0;
 bool isLongPressHandled = false;
+
+// Vibration Control
+unsigned long vibrationStartTime = 0;
+bool isVibrating = false;
+
+void triggerVibration() {
+    digitalWrite(VIB_PIN, HIGH);
+    vibrationStartTime = millis();
+    isVibrating = true;
+}
 
 // Objects
 TinyGPSPlus gps;
@@ -234,6 +252,10 @@ void setup() {
     // Button Setup
     pinMode(BUTTON_PIN, INPUT_PULLUP);
     lastInteractionTime = millis();
+
+    // Vibration Setup
+    pinMode(VIB_PIN, OUTPUT);
+    digitalWrite(VIB_PIN, LOW);
 
     // Initialize Sensors
     Wire.begin(I2C_SDA, I2C_SCL);
@@ -441,18 +463,25 @@ void loop() {
             // If we reached the target (within 20m), move to previous
             if (distToTarget < 20.0) {
                 targetBreadcrumbIndex--;
+                triggerVibration();
                 // If index < 0, we are past the last breadcrumb, target becomes Home
             }
         }
     }
 
-    // 7. Display Timeout
+    // 7. Vibration Logic
+    if (isVibrating && (millis() - vibrationStartTime > 500)) {
+        digitalWrite(VIB_PIN, LOW);
+        isVibrating = false;
+    }
+
+    // 8. Display Timeout
     if (isDisplayOn && (millis() - lastInteractionTime > DISPLAY_TIMEOUT)) {
         digitalWrite(TFT_BL, LOW);
         isDisplayOn = false;
     }
 
-    // 8. Update Display
+    // 9. Update Display
     if (isDisplayOn) {
         static unsigned long lastUpdate = 0;
         if (millis() - lastUpdate > 500) { // Faster update for smooth arrow
