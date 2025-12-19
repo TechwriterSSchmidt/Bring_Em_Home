@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
+#include <Wire.h>
 
 // RGB565 Color definitions
 #define BLACK   0x0000
@@ -44,8 +45,8 @@ Arduino_GFX *gfx = new Arduino_ST7789(
     true,         // IPS panel = true (THIS WORKED!)
     SCREEN_WIDTH, // width = 172
     SCREEN_HEIGHT,// height = 320
-    0,            // col_offset = 0
-    34            // row_offset = 34 (offset_height)
+    34,           // col_offset = 34 (Centering for 172x320 in 240x320 driver)
+    0             // row_offset = 0
 );
 
 void setup() {
@@ -54,6 +55,26 @@ void setup() {
     // while(!Serial) delay(100); 
     delay(2000);
     Serial.println("\n\n=== ESP32-C6 Bring Em Home ===");
+
+    // I2C Scan to check for Touch Controller
+    Wire.begin(1, 2); // SDA=1, SCL=2
+    Serial.println("Scanning I2C bus...");
+    int nDevices = 0;
+    for(byte address = 1; address < 127; address++) {
+        Wire.beginTransmission(address);
+        byte error = Wire.endTransmission();
+        if (error == 0) {
+            Serial.print("I2C device found at address 0x");
+            if (address < 16) Serial.print("0");
+            Serial.print(address, HEX);
+            Serial.println("  !");
+            nDevices++;
+        }
+    }
+    if (nDevices == 0)
+        Serial.println("No I2C devices found\n");
+    else
+        Serial.println("done\n");
     
     // Backlight Control Test
     pinMode(TFT_BL, OUTPUT);
