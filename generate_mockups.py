@@ -128,12 +128,12 @@ def generate_nav():
     # Tip
     draw.polygon([(cx, cy-r), (cx-10, cy+10), (cx, cy+5), (cx+10, cy+10)], outline=FG_COLOR, fill=FG_COLOR)
     
-    # Cardinals (N, NE, E, SE, S, SW, W, NW)
+    # Cardinals (N, ., E, ., S, ., W, .)
     font_card = get_font(8)
     r_text = r + 14
     
-    dirs = [("N", 0), ("NE", 45), ("E", 90), ("SE", 135), 
-            ("S", 180), ("SW", 225), ("W", 270), ("NW", 315)]
+    dirs = [("N", 0), (".", 45), ("E", 90), (".", 135), 
+            ("S", 180), (".", 225), ("W", 270), (".", 315)]
             
     for label, angle in dirs:
         # 0 deg = North (Up) -> -90 deg in standard trig

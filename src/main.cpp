@@ -225,8 +225,8 @@ void drawArrow(int cx, int cy, int r, float angleDeg, bool showCardinals = false
         
         struct Cardinal { const char* label; float offset; };
         Cardinal dirs[] = { 
-            {"N", 0}, {"NE", 45}, {"E", 90}, {"SE", 135}, 
-            {"S", 180}, {"SW", 225}, {"W", 270}, {"NW", 315} 
+            {"N", 0}, {".", 45}, {"E", 90}, {".", 135}, 
+            {"S", 180}, {".", 225}, {"W", 270}, {".", 315} 
         };
         
         for (auto& d : dirs) {
