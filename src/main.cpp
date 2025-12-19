@@ -286,21 +286,7 @@ void updateStatusLED() {
     // For now, we use a placeholder or simple check if we had the calibration data.
     // Since we don't have calibration, we skip the actual reading to avoid false alarms.
     // TODO: Implement ADC reading on GPIO 1.
-    bool lowBattery = false; 
-
-    if (lowBattery) {
-        if (millis() - lastBlink > 10000) { // Every 10 seconds
-            pixels.setPixelColor(0, pixels.Color(255, 180, 0)); // Yellow
-            pixels.show();
-            delay(100); // Short flash
-            pixels.clear();
-            pixels.show();
-            lastBlink = millis();
-        }
-        return; // Priority over GPS
-    }
-
-    // 2. GPS Search (Red Pulsing)
+    bool lowBattery = (getBatteryPercent() < 10); 
     if (!gps.location.isValid()) {
         if (millis() - lastPulseTime > 20) { // Smooth fading
             pixels.setPixelColor(0, pixels.Color(pulseBrightness, 0, 0));
@@ -564,7 +550,8 @@ void loop() {
             }
         }
 
-        // 3s: Toggle SOS (Long Press)
+        // 3s: Toggle SOS (Long Press) - REMOVED
+        /*
         if (!isLongPressHandled && pressDuration > 3000) {
             isSOSActive = !isSOSActive;
             triggerVibration();
@@ -580,6 +567,7 @@ void loop() {
             delay(1000);
             lastInteractionTime = millis();
         }
+        */
     }
     
     // Button Released

@@ -68,7 +68,7 @@ Displayed when no GPS fix is available. Shows an animated text "Searching SATs .
 ![Searching Screen](mockup_searching.png)
 
 ### 3. SOS Mode
-Activated by 5 rapid clicks or long press (3s). Displays a huge countdown to the next LoRa transmission.
+Activated by 5 rapid clicks. Displays a huge countdown to the next LoRa transmission.
 
 ![SOS Screen](mockup_sos.png)
 
