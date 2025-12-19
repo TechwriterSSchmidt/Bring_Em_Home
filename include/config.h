@@ -34,12 +34,18 @@
 #define CPU_FREQ_LOW        80      // MHz (Standby)
 
 // --- Feature Settings ---
+// User Data
+#define USER_BLOOD_TYPE     "A+"    // Blood Type for SOS Message
+
 // LoRa SOS
 #define LORA_TX_INTERVAL    60000   // SOS Beacon Interval (ms) -> 1 Minute
 #define LORA_FREQ           868.0   // Frequency (EU868)
 
 // Navigation
 #define BREADCRUMB_DIST     250.0   // Distance between breadcrumbs (meters)
+#define MAX_BREADCRUMBS     350     // Max breadcrumbs (approx 80-90km)
+#define MIN_SPEED_KPH       1.0     // Minimum speed to record breadcrumb (prevents GPS drift)
+#define MAX_SPEED_KPH       12.0    // Maximum realistic hiking speed (prevents GPS glitches)
 
 // User Interface
 #define CLICK_DELAY         500     // Max delay between clicks (ms)

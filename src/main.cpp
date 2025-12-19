@@ -14,6 +14,7 @@
 #include <esp_task_wdt.h>
 #include <RadioLib.h>
 #include <Adafruit_NeoPixel.h>
+#include <LittleFS.h>
 #include "config.h"
 
 // Display dimensions
@@ -72,6 +73,7 @@ struct Breadcrumb {
     double lon;
 };
 std::vector<Breadcrumb> breadcrumbs;
+const char* BREADCRUMB_FILE = "/breadcrumbs.dat";
 int targetBreadcrumbIndex = -1; // For backtracking
 
 // Button Logic (Multi-click)
@@ -104,6 +106,22 @@ void toggleSOS() {
     }
 }
 
+// --- Helper Functions ---
+
+int getBatteryPercent() {
+    // Heltec Wireless Tracker V1.1: GPIO 1, Divider ~2
+    // 4.2V = 100%, 3.3V = 0%
+    // Using analogReadMilliVolts for factory calibrated reading
+    uint32_t voltage_mv = analogReadMilliVolts(1) * 2; // Multiply by 2 for voltage divider
+    
+    // Simple linear mapping
+    // 4200mV = 100%, 3300mV = 0%
+    int pct = (int)((voltage_mv - 3300) * 100 / (4200 - 3300));
+    if (pct > 100) pct = 100;
+    if (pct < 0) pct = 0;
+    return pct;
+}
+
 void updateSOS() {
     if (!isSOSActive) return;
     
@@ -112,7 +130,10 @@ void updateSOS() {
     // --- LoRa Transmission (Every 1 Minute) ---
     if (now - lastLoRaTx > LORA_TX_INTERVAL) {
         lastLoRaTx = now;
-        String msg = "SOS! Lat:" + String(gps.location.lat(), 6) + " Lon:" + String(gps.location.lng(), 6);
+        String msg = "SOS! Lat:" + String(gps.location.lat(), 6) + 
+                     " Lon:" + String(gps.location.lng(), 6) + 
+                     " Bat:" + String(getBatteryPercent()) + "%" +
+                     " Type:" + USER_BLOOD_TYPE;
         Serial.print("Sending LoRa SOS: "); Serial.println(msg);
         
         // Wake up and send
@@ -182,6 +203,33 @@ void drawArrow(int cx, int cy, int r, float angleDeg) {
     u8g2.drawDisc(cx, cy, 3);
 }
 
+// --- Helper Functions ---
+
+void saveBreadcrumbs() {
+    File file = LittleFS.open(BREADCRUMB_FILE, "w");
+    if (file) {
+        for (const auto& b : breadcrumbs) {
+            file.write((uint8_t*)&b, sizeof(Breadcrumb));
+        }
+        file.close();
+    }
+}
+
+void loadBreadcrumbs() {
+    if (LittleFS.exists(BREADCRUMB_FILE)) {
+        File file = LittleFS.open(BREADCRUMB_FILE, "r");
+        if (file) {
+            breadcrumbs.clear();
+            Breadcrumb b;
+            while (file.read((uint8_t*)&b, sizeof(Breadcrumb)) == sizeof(Breadcrumb)) {
+                breadcrumbs.push_back(b);
+            }
+            file.close();
+            Serial.printf("Loaded %d breadcrumbs from Flash.\n", breadcrumbs.size());
+        }
+    }
+}
+
 // Hilfsfunktion für kritische Fehler
 void fatalError(String message) {
     Serial.println("\n!!! KRITISCHER FEHLER !!!");
@@ -247,20 +295,6 @@ void updateStatusLED() {
         pixels.clear();
         pixels.show();
     }
-}
-
-int getBatteryPercent() {
-    // Heltec Wireless Tracker V1.1: GPIO 1, Divider ~2
-    // 4.2V = 100%, 3.3V = 0%
-    // Using analogReadMilliVolts for factory calibrated reading
-    uint32_t voltage_mv = analogReadMilliVolts(1) * 2; // Multiply by 2 for voltage divider
-    
-    // Simple linear mapping
-    // 4200mV = 100%, 3300mV = 0%
-    int pct = (int)((voltage_mv - 3300) * 100 / (4200 - 3300));
-    if (pct > 100) pct = 100;
-    if (pct < 0) pct = 0;
-    return pct;
 }
 
 void setup() {
@@ -358,19 +392,27 @@ void setup() {
     if (!preferences.begin("bringemhome", false)) {
         fatalError("Preferences Init Failed!");
     }
+
+    // Init Filesystem
+    if (!LittleFS.begin(true)) {
+        Serial.println("LittleFS Mount Failed");
+    }
     
     // Smart Home Loading: Only load if NOT a fresh power-on
     esp_reset_reason_t reason = esp_reset_reason();
     if (reason == ESP_RST_POWERON) {
-        Serial.println("Power On Reset: Clearing Home for new hike.");
+        Serial.println("Power On Reset: Clearing Session (Home & Breadcrumbs).");
         hasHome = false; 
-        // We don't delete from prefs yet, we just ignore it.
-        // It will be overwritten when we get a fix.
+        // Breadcrumbs löschen
+        LittleFS.remove(BREADCRUMB_FILE);
+        breadcrumbs.clear();
     } else {
         Serial.printf("Reset Reason: %d. Attempting to restore session.\n", reason);
         homeLat = preferences.getDouble("lat", 0.0);
         homeLon = preferences.getDouble("lon", 0.0);
         hasHome = (homeLat != 0.0 && homeLon != 0.0);
+        // Breadcrumbs laden
+        loadBreadcrumbs();
     }
     Serial.printf("Home: %f, %f (HasHome: %d)\n", homeLat, homeLon, hasHome);
     
@@ -439,6 +481,40 @@ void loop() {
     if (currentButtonState == LOW) {
         unsigned long pressDuration = millis() - buttonPressStartTime;
         
+        // 10s: Reset Home (Extra Long Press)
+        if (!isLongPressHandled && pressDuration > 10000) {
+            if (currentMode == MODE_EXPLORE && gps.location.isValid()) {
+                // Action
+                homeLat = gps.location.lat();
+                homeLon = gps.location.lng();
+                preferences.putDouble("lat", homeLat);
+                preferences.putDouble("lon", homeLon);
+                hasHome = true;
+                
+                // Feedback (LED & Vibration)
+                isLongPressHandled = true;
+                
+                // LED Blitzgewitter (Grün)
+                for(int i=0; i<5; i++) {
+                    pixels.setPixelColor(0, pixels.Color(0, 255, 0)); pixels.show();
+                    digitalWrite(PIN_VIB_MOTOR, HIGH);
+                    delay(100);
+                    pixels.clear(); pixels.show();
+                    digitalWrite(PIN_VIB_MOTOR, LOW);
+                    delay(100);
+                }
+                
+                // Display Feedback
+                if (!isDisplayOn) { u8g2.setPowerSave(0); isDisplayOn = true; }
+                u8g2.clearBuffer();
+                u8g2.setFont(u8g2_font_ncenB12_tr);
+                u8g2.drawStr(10, 60, "HOME RESET!");
+                u8g2.sendBuffer();
+                delay(2000);
+                lastInteractionTime = millis();
+            }
+        }
+
         // 3s: Toggle SOS (Long Press)
         if (!isLongPressHandled && pressDuration > 3000) {
             isSOSActive = !isSOSActive;
@@ -568,25 +644,39 @@ void loop() {
         lastInteractionTime = millis();
     }
 
-    // 5. Breadcrumb Logic (Recording)
+    // 5. Breadcrumb Logic (Recording with Filter)
     if (currentMode == MODE_EXPLORE && gps.location.isValid()) {
         bool shouldSave = false;
-        if (breadcrumbs.empty()) {
-            shouldSave = true;
-        } else {
-            Breadcrumb last = breadcrumbs.back();
-            double dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), last.lat, last.lon);
-            if (dist > BREADCRUMB_DIST) {
+        
+        // Filter: Only save if moving (> 1 km/h) AND not too fast (< 15 km/h) to prevent GPS drift/glitches
+        double speed = gps.speed.kmph();
+        if (speed > MIN_SPEED_KPH && speed < MAX_SPEED_KPH) {
+            if (breadcrumbs.empty()) {
                 shouldSave = true;
+            } else {
+                Breadcrumb last = breadcrumbs.back();
+                double dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), last.lat, last.lon);
+                if (dist > BREADCRUMB_DIST) {
+                    shouldSave = true;
+                }
             }
         }
         
         if (shouldSave) {
+            // Ringbuffer Limit Check
+            if (breadcrumbs.size() >= MAX_BREADCRUMBS) {
+                breadcrumbs.erase(breadcrumbs.begin()); // Delete oldest
+            }
+
             Breadcrumb b;
             b.lat = gps.location.lat();
             b.lon = gps.location.lng();
             breadcrumbs.push_back(b);
-            Serial.printf("Breadcrumb saved: %f, %f\n", b.lat, b.lon);
+            
+            // Save to Flash immediately
+            saveBreadcrumbs();
+            
+            Serial.printf("Breadcrumb saved: %f, %f (Total: %d)\n", b.lat, b.lon, breadcrumbs.size());
         }
     }
 
