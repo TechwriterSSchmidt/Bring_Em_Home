@@ -35,16 +35,18 @@
 #define ORANGE  0xFD20
 
 // Pin definitions for Waveshare ESP32-S3 1.47" Touch LCD
-// Updated to match official Waveshare example
 #define TFT_DC     45
 #define TFT_CS     21
 #define TFT_SCLK   38
 #define TFT_MOSI   39
-#define TFT_RST    40  // Corrected: Display Reset is 40
 #define TFT_BLK    46
 
+// Confusing Reset Pin Logic from Demo 01_gfx_helloworld
+#define REAL_LCD_RST 40  // Used for manual toggle
+#define DRIVER_RST   47  // Passed to constructor
+
 // Touch Pins
-#define TOUCH_RST  47  // Corrected: Touch Reset is 47
+#define TOUCH_RST  47
 #define TOUCH_INT  48
 #define TOUCH_SDA  42
 #define TOUCH_SCL  41
@@ -73,8 +75,9 @@
 
 // Create objects
 Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI);
-// Waveshare 1.47" uses ST7789 driver with specific offsets and resolution
-Arduino_GFX *tft = new Arduino_ST7789(bus, TFT_RST, ROTATION /* rotation */, false /* IPS */, SCREEN_WIDTH, SCREEN_HEIGHT, 34 /* col_offset1 */, 0 /* row_offset1 */, 34 /* col_offset2 */, 0 /* row_offset2 */);
+
+// NOTE: Passing DRIVER_RST (47) to constructor, but we will toggle REAL_LCD_RST (40) manually!
+Arduino_GFX *tft = new Arduino_ST7789(bus, DRIVER_RST, ROTATION /* rotation */, false /* IPS */, SCREEN_WIDTH, SCREEN_HEIGHT, 34 /* col_offset1 */, 0 /* row_offset1 */, 34 /* col_offset2 */, 0 /* row_offset2 */);
 
 // Touch Data
 touch_data_t touch_data;
@@ -233,11 +236,11 @@ void setup() {
   digitalWrite(TFT_BLK, HIGH); // Turn on backlight
 
   // Initialize display
-  // Manual reset as per Waveshare example
-  pinMode(TFT_RST, OUTPUT);
-  digitalWrite(TFT_RST, LOW);
+  // Manual reset as per Waveshare example 01_gfx_helloworld
+  pinMode(REAL_LCD_RST, OUTPUT);
+  digitalWrite(REAL_LCD_RST, LOW);
   delay(10);
-  digitalWrite(TFT_RST, HIGH);
+  digitalWrite(REAL_LCD_RST, HIGH);
   delay(10);
 
   if (!tft->begin()) {
@@ -247,7 +250,7 @@ void setup() {
   lcd_reg_init(); // Custom init for JD9853/ST7789 on Waveshare 1.47"
   
   tft->setRotation(ROTATION); // Landscape
-  tft->fillScreen(BLUE); // Changed to BLUE to verify display is working
+  tft->fillScreen(RED); // RED for visibility
   tft->setTextColor(WHITE);
   tft->setTextSize(1);
   
@@ -257,7 +260,11 @@ void setup() {
 
   // I2C Scanner
   Serial.println("Scanning I2C (Wire)...");
-  Wire.begin(I2C_SDA, I2C_SCL);
+  Wire.end(); // Ensure clean state
+  Wire.setPins(I2C_SDA, I2C_SCL);
+  Wire.begin();
+  Wire.setClock(100000); // Force 100kHz standard speed
+  
   for (byte i = 1; i < 127; i++) {
     Wire.beginTransmission(i);
     if (Wire.endTransmission() == 0) {
@@ -266,6 +273,8 @@ void setup() {
     }
   }
 
+  // Temporarily disabled Touch Init to isolate Display
+  /*
   Serial.println("Scanning I2C (Wire1)...");
   Wire1.begin(TOUCH_SDA, TOUCH_SCL);
   for (byte i = 1; i < 127; i++) {
@@ -288,10 +297,12 @@ void setup() {
     Serial.println("Touch controller NOT found");
     tft->println("Touch: FAIL");
   }
+  */
   
   // Initialize compass
   // Wire.begin(I2C_SDA, I2C_SCL); // Already called above
   if (mag.begin()) {
+    Wire.setClock(100000); // Ensure clock is still 100kHz after init
     Serial.println("HMC5883L detected!");
     tft->println("Compass: OK");
     compassFound = true;
