@@ -10,6 +10,7 @@
 #include <MechaQMC5883.h>
 #include <Preferences.h>
 #include <vector>
+#include <WiFi.h> // For power management
 
 // RGB565 Color definitions
 #define BLACK   0x0000
@@ -60,6 +61,26 @@ bool isLongPressHandled = false;
 // Vibration Control
 unsigned long vibrationStartTime = 0;
 bool isVibrating = false;
+
+// GPS Power Management (UBX Commands for u-blox M10/M8)
+void setGPSPower(bool on) {
+    if (on) {
+        // Wake up (send dummy bytes)
+        Serial1.write(0xFF);
+        delay(100);
+    } else {
+        // Send UBX-RXM-PMREQ (Backup Mode)
+        // Header: 0xB5 0x62, Class: 0x02, ID: 0x41, Len: 0x08
+        // Payload: Duration(0=Inf), Flags(2=Backup)
+        uint8_t packet[] = {
+            0xB5, 0x62, 0x02, 0x41, 0x08, 0x00, 
+            0x00, 0x00, 0x00, 0x00, 
+            0x02, 0x00, 0x00, 0x00,
+            0x4D, 0x3B // Checksum (Calculated)
+        };
+        Serial1.write(packet, sizeof(packet));
+    }
+}
 
 void triggerVibration() {
     digitalWrite(VIB_PIN, HIGH);
@@ -252,6 +273,35 @@ void lcd_reg_init(void) {
 
 void setup() {
     Serial.begin(115200);
+    
+    // Power Optimization: Turn off Radios
+    WiFi.mode(WIFI_OFF);
+    btStop();
+    setCpuFrequencyMhz(240); // Start with high performance for UI
+
+    // Wakeup Safety Check (Prevent accidental pocket activation)
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+    if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0) {
+        // Woke up by button. Verify hold duration.
+        unsigned long wakeStart = millis();
+        bool wakeConfirmed = false;
+        
+        // Wait for user to hold button for 2 seconds
+        while (digitalRead(BUTTON_PIN) == LOW) {
+            if (millis() - wakeStart > 2000) { 
+                wakeConfirmed = true;
+                break;
+            }
+            delay(10);
+        }
+        
+        if (!wakeConfirmed) {
+            // Button released too early -> Go back to sleep immediately
+            esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, 0);
+            esp_deep_sleep_start();
+        }
+    }
+
     delay(2000);
     Serial.println("\n\n=== ESP32-S3 Bring Em Home ===");
     
@@ -271,7 +321,8 @@ void setup() {
     Wire.begin(I2C_SDA, I2C_SCL);
     qmc.init();
     Serial1.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-
+    setGPSPower(true); // Ensure GPS is awake
+    
     // Initialize Preferences
     preferences.begin("bringemhome", false);
     homeLat = preferences.getDouble("lat", 0.0);
@@ -331,8 +382,10 @@ void loop() {
     
     // Button Held (Long Press)
     if (currentButtonState == LOW) {
-        if (!isLongPressHandled && (millis() - buttonPressStartTime > 2000)) {
-            // Long Press Action: Save Home (Only in Recording Mode)
+        unsigned long pressDuration = millis() - buttonPressStartTime;
+        
+        // 2s: Save Home (Only in Recording Mode, One shot)
+        if (!isLongPressHandled && pressDuration > 2000 && pressDuration < 5000) {
             if (currentMode == MODE_RECORDING) {
                 Serial.println("Long Press: Saving Home");
                 if (gps.location.isValid()) {
@@ -343,7 +396,11 @@ void loop() {
                     preferences.putDouble("lon", homeLon);
                     
                     // Visual Feedback
-                    if (!isDisplayOn) { digitalWrite(TFT_BL, HIGH); isDisplayOn = true; }
+                    if (!isDisplayOn) { 
+                        digitalWrite(TFT_BL, HIGH); 
+                        isDisplayOn = true; 
+                        setCpuFrequencyMhz(240);
+                    }
                     gfx->fillScreen(C_EMERALD);
                     gfx->setCursor(40, 110);
                     gfx->setTextColor(BLACK);
@@ -353,7 +410,11 @@ void loop() {
                     gfx->fillScreen(BLACK);
                 } else {
                     // Error Feedback
-                    if (!isDisplayOn) { digitalWrite(TFT_BL, HIGH); isDisplayOn = true; }
+                    if (!isDisplayOn) { 
+                        digitalWrite(TFT_BL, HIGH); 
+                        isDisplayOn = true; 
+                        setCpuFrequencyMhz(240);
+                    }
                     gfx->fillScreen(C_RUBY);
                     gfx->setCursor(40, 110);
                     gfx->setTextColor(WHITE);
@@ -362,19 +423,40 @@ void loop() {
                     delay(1000);
                     gfx->fillScreen(BLACK);
                 }
-            } else {
-                // In Backtrack Mode: Long Press could exit? 
-                // For now, let's keep mode switching to Double Click
             }
-            isLongPressHandled = true;
+            isLongPressHandled = true; // Prevent repeat
             lastInteractionTime = millis();
+        }
+        
+        // 5s: Power Off (Deep Sleep)
+        if (pressDuration > 5000) {
+            // Feedback
+            if (!isDisplayOn) { digitalWrite(TFT_BL, HIGH); }
+            setCpuFrequencyMhz(240);
+            gfx->fillScreen(BLACK);
+            gfx->setCursor(40, 100);
+            gfx->setTextColor(C_SILVER);
+            gfx->setTextSize(2);
+            gfx->println("GOODBYE");
+            delay(1000);
+            digitalWrite(TFT_BL, LOW);
+            
+            // Turn off GPS
+            setGPSPower(false);
+            
+            // Configure Wakeup
+            esp_sleep_enable_ext0_wakeup((gpio_num_t)BUTTON_PIN, 0); // Wake on LOW
+            
+            // Go to Sleep
+            Serial.println("Entering Deep Sleep...");
+            esp_deep_sleep_start();
         }
     }
     
     // Button Released
     if (currentButtonState == HIGH && lastButtonState == LOW) {
-        if (!isLongPressHandled) {
-            // Register Click
+        if (!isLongPressHandled && (millis() - buttonPressStartTime < 2000)) {
+            // Register Click (only if not a long press)
             clickCount++;
             lastClickTime = millis();
         }
@@ -388,9 +470,11 @@ void loop() {
             if (isDisplayOn) {
                 digitalWrite(TFT_BL, LOW);
                 isDisplayOn = false;
+                setCpuFrequencyMhz(80); // Low power mode
             } else {
                 digitalWrite(TFT_BL, HIGH);
                 isDisplayOn = true;
+                setCpuFrequencyMhz(240); // High performance mode
                 lastInteractionTime = millis();
             }
         } else if (clickCount >= 2) {
@@ -414,7 +498,11 @@ void loop() {
                 }
                 
                 // Feedback
-                if (!isDisplayOn) { digitalWrite(TFT_BL, HIGH); isDisplayOn = true; }
+                if (!isDisplayOn) { 
+                    digitalWrite(TFT_BL, HIGH); 
+                    isDisplayOn = true; 
+                    setCpuFrequencyMhz(240);
+                }
                 gfx->fillScreen(C_RUBY);
                 gfx->setCursor(40, 110);
                 gfx->setTextColor(WHITE);
@@ -425,7 +513,11 @@ void loop() {
             } else {
                 currentMode = MODE_RECORDING;
                 // Feedback
-                if (!isDisplayOn) { digitalWrite(TFT_BL, HIGH); isDisplayOn = true; }
+                if (!isDisplayOn) { 
+                    digitalWrite(TFT_BL, HIGH); 
+                    isDisplayOn = true; 
+                    setCpuFrequencyMhz(240);
+                }
                 gfx->fillScreen(C_EMERALD);
                 gfx->setCursor(40, 110);
                 gfx->setTextColor(BLACK);
@@ -498,6 +590,7 @@ void loop() {
     if (isDisplayOn && (millis() - lastInteractionTime > DISPLAY_TIMEOUT)) {
         digitalWrite(TFT_BL, LOW);
         isDisplayOn = false;
+        setCpuFrequencyMhz(80); // Low power mode
     }
 
     // 9. Update Display
