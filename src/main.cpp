@@ -15,12 +15,27 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLEBeacon.h>
+#include <esp_task_wdt.h>
+#include <RadioLib.h>
+#include <Adafruit_NeoPixel.h>
+
+#define WDT_TIMEOUT 10 // 10 Seconds Watchdog Timeout
 
 // ESP32-S3 Pin Configuration (Heltec Wireless Tracker)
 #define BUTTON_PIN 0  // Built-in Boot Button (PRG) or External on GPIO 0
 #define VIB_PIN 7     // Vibration Motor (Moved from 13)
 #define FLASHLIGHT_PIN 5 // High Power LED (Moved from 21)
 #define VEXT_PIN 3    // Power Control for Sensors
+#define PIN_NEOPIXEL 18 // Internal WS2812 LED
+
+// LoRa Pins (SX1262)
+#define LORA_NSS 8
+#define LORA_DIO1 14
+#define LORA_RST 12
+#define LORA_BUSY 13
+#define LORA_SCK 9
+#define LORA_MISO 11
+#define LORA_MOSI 10
 
 // Sensor Pins
 #define GPS_RX 34     // Internal GPS RX
@@ -52,6 +67,50 @@ unsigned long lastSOSUpdate = 0;
 int sosStep = 0;
 #define BEACON_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 BLEAdvertising *pAdvertising;
+
+// Objects
+TinyGPSPlus gps;
+Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
+Preferences preferences;
+SX1262 radio = new Module(LORA_NSS, LORA_DIO1, LORA_RST, LORA_BUSY);
+SPIClass loraSPI(HSPI);
+Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+
+// LoRa State
+unsigned long lastLoRaTx = 0;
+const unsigned long LORA_INTERVAL = 120000; // 2 Minutes
+
+// U8g2 Display Object (SH1107 128x128 I2C)
+// Full framebuffer (F) for smooth animation
+U8G2_SH1107_128X128_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+
+// App Modes
+enum AppMode {
+    MODE_RECORDING,
+    MODE_BACKTRACKING
+};
+AppMode currentMode = MODE_RECORDING;
+
+// Navigation Data
+double homeLat = 0.0;
+double homeLon = 0.0;
+bool hasHome = false;
+int currentHeading = 0;
+unsigned long startTime = 0;
+
+// Breadcrumbs
+struct Breadcrumb {
+    double lat;
+    double lon;
+};
+std::vector<Breadcrumb> breadcrumbs;
+const double BREADCRUMB_DISTANCE = 250.0; // Meters
+int targetBreadcrumbIndex = -1; // For backtracking
+
+// Button Logic (Multi-click)
+int clickCount = 0;
+unsigned long lastClickTime = 0;
+const int CLICK_DELAY = 500; // ms to wait for multi-click (Increased for 5-click SOS)
 
 void triggerVibration() {
     digitalWrite(VIB_PIN, HIGH);
@@ -93,6 +152,12 @@ void toggleSOS() {
     isFlashlightOn = false; // Disable manual light
     if (!isSOSActive) {
         digitalWrite(FLASHLIGHT_PIN, LOW);
+        radio.sleep(); // Put LoRa to sleep
+        Serial.println("SOS Deactivated. LoRa Sleeping.");
+    } else {
+        Serial.println("SOS Activated! LoRa Waking up.");
+        // Wake up LoRa (re-init if needed or just start sending)
+        // We will handle TX in the loop
     }
 }
 
@@ -100,6 +165,26 @@ void updateSOS() {
     if (!isSOSActive) return;
     
     unsigned long now = millis();
+
+    // --- LoRa Transmission (Every 2 Minutes) ---
+    if (now - lastLoRaTx > LORA_INTERVAL) {
+        lastLoRaTx = now;
+        String msg = "SOS! Lat:" + String(gps.location.lat(), 6) + " Lon:" + String(gps.location.lng(), 6);
+        Serial.print("Sending LoRa SOS: "); Serial.println(msg);
+        
+        // Wake up and send
+        radio.standby();
+        int state = radio.transmit(msg);
+        if (state == RADIOLIB_ERR_NONE) {
+            Serial.println("LoRa TX Success!");
+        } else {
+            Serial.print("LoRa TX Failed, code "); Serial.println(state);
+        }
+        // Go back to sleep to save power until next TX
+        radio.sleep();
+    }
+
+    // --- LED Pattern ---
     // SOS Pattern: ... --- ... (Dot=200ms, Dash=600ms, Gap=200ms, LetterGap=600ms, WordGap=1400ms)
     // Simplified: 3 short, 3 long, 3 short
     
@@ -125,43 +210,6 @@ void updateSOS() {
         digitalWrite(FLASHLIGHT_PIN, (sosStep % 2 == 0) ? HIGH : LOW);
     }
 }
-
-// Objects
-TinyGPSPlus gps;
-Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
-Preferences preferences;
-
-// U8g2 Display Object (SH1107 128x128 I2C)
-// Full framebuffer (F) for smooth animation
-U8G2_SH1107_128X128_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-
-// App Modes
-enum AppMode {
-    MODE_RECORDING,
-    MODE_BACKTRACKING
-};
-AppMode currentMode = MODE_RECORDING;
-
-// Navigation Data
-double homeLat = 0.0;
-double homeLon = 0.0;
-bool hasHome = false;
-int currentHeading = 0;
-unsigned long startTime = 0;
-
-// Breadcrumbs
-struct Breadcrumb {
-    double lat;
-    double lon;
-};
-std::vector<Breadcrumb> breadcrumbs;
-const double BREADCRUMB_DISTANCE = 250.0; // Meters
-int targetBreadcrumbIndex = -1; // For backtracking
-
-// Button Logic (Multi-click)
-int clickCount = 0;
-unsigned long lastClickTime = 0;
-const int CLICK_DELAY = 400; // ms to wait for double click
 
 // Helper: Draw Rotated Arrow (Fancy Needle)
 void drawArrow(int cx, int cy, int r, float angleDeg) {
@@ -212,6 +260,52 @@ void fatalError(String message) {
     ESP.restart(); // Software-Reset durchführen
 }
 
+// Helper: Update RGB Status LED
+void updateStatusLED() {
+    static unsigned long lastBlink = 0;
+    static int pulseBrightness = 0;
+    static int pulseDir = 5;
+    static unsigned long lastPulseTime = 0;
+
+    // 1. Battery Warning (< 10%)
+    // Heltec Wireless Tracker has voltage divider on GPIO 1.
+    // ADC value 0-4095. Reference 3.3V. Divider factor ~2 (needs calibration).
+    // Assuming 3.3V logic, 3.7V LiPo.
+    // For now, we use a placeholder or simple check if we had the calibration data.
+    // Since we don't have calibration, we skip the actual reading to avoid false alarms.
+    // TODO: Implement ADC reading on GPIO 1.
+    bool lowBattery = false; 
+
+    if (lowBattery) {
+        if (millis() - lastBlink > 10000) { // Every 10 seconds
+            pixels.setPixelColor(0, pixels.Color(255, 180, 0)); // Yellow
+            pixels.show();
+            delay(100); // Short flash
+            pixels.clear();
+            pixels.show();
+            lastBlink = millis();
+        }
+        return; // Priority over GPS
+    }
+
+    // 2. GPS Search (Red Pulsing)
+    if (!gps.location.isValid()) {
+        if (millis() - lastPulseTime > 20) { // Smooth fading
+            pixels.setPixelColor(0, pixels.Color(pulseBrightness, 0, 0));
+            pixels.show();
+            pulseBrightness += pulseDir;
+            if (pulseBrightness >= 100 || pulseBrightness <= 0) { // Max brightness 100
+                pulseDir = -pulseDir;
+            }
+            lastPulseTime = millis();
+        }
+    } else {
+        // GPS Fix acquired -> LED off to save power
+        pixels.clear();
+        pixels.show();
+    }
+}
+
 void setup() {
     // Power on VExt for sensors (GPS, LoRa, OLED)
     pinMode(VEXT_PIN, OUTPUT);
@@ -219,7 +313,17 @@ void setup() {
     delay(100); // Wait for power to stabilize
 
     Serial.begin(115200);
-    
+
+    // Init NeoPixel
+    pixels.begin();
+    pixels.setBrightness(50);
+    pixels.clear();
+    pixels.show();
+
+    // Initialize Watchdog Timer
+    esp_task_wdt_init(WDT_TIMEOUT, true); // Enable panic so ESP32 restarts
+    esp_task_wdt_add(NULL); // Add current thread to WDT watch
+
     // Power Optimization: Turn off Radios
     WiFi.mode(WIFI_OFF);
     btStop();
@@ -278,6 +382,17 @@ void setup() {
     // Initialize GPS (ATGM336H typically 9600 baud)
     Serial1.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
     // GPS defaults to ON when powered
+
+    // Initialize LoRa (SX1262)
+    loraSPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_NSS);
+    int state = radio.begin(868.0, 125.0, 9, 7, 0x12, 10, 8, 0, false); // EU868
+    if (state == RADIOLIB_ERR_NONE) {
+        Serial.println("LoRa Init Success!");
+        radio.sleep(); // Sleep immediately
+    } else {
+        Serial.print("LoRa Init Failed, code "); Serial.println(state);
+        // Non-fatal, we continue
+    }
     
     // Initialize Preferences
     if (!preferences.begin("bringemhome", false)) {
@@ -329,6 +444,16 @@ void setup() {
 }
 
 void loop() {
+    // Reset Watchdog Timer
+    esp_task_wdt_reset();
+
+    // Update Status LED (50Hz)
+    static unsigned long lastLedUpdate = 0;
+    if (millis() - lastLedUpdate > 20) {
+        updateStatusLED();
+        lastLedUpdate = millis();
+    }
+
     // 1. Process GPS
     while (Serial1.available()) {
         gps.encode(Serial1.read());
@@ -448,9 +573,11 @@ void loop() {
             // Triple Click: Flashlight
             toggleFlashlight();
             triggerVibration();
-        } else if (clickCount >= 4) {
-            // Quad Click: SOS
+        } else if (clickCount >= 5) {
+            // 5x Click: SOS (LoRa + LED)
             toggleSOS();
+            triggerVibration();
+            delay(100);
             triggerVibration();
             delay(100);
             triggerVibration();
@@ -573,6 +700,42 @@ void loop() {
 
             // --- Main Content ---
             
+            // If NO GPS, show Satellite Dish Animation
+            if (!gps.location.isValid()) {
+                int cx = SCREEN_WIDTH / 2;
+                int cy = 64;
+                
+                // Dish Base
+                u8g2.drawLine(cx-10, cy+10, cx+10, cy+10);
+                u8g2.drawLine(cx, cy+10, cx, cy+20);
+                u8g2.drawLine(cx-5, cy+20, cx+5, cy+20);
+                
+                // Dish Curve (Semi-circle pointing up-right)
+                // Simple approximation with lines
+                u8g2.drawLine(cx-10, cy+10, cx-15, cy-5);
+                u8g2.drawLine(cx-15, cy-5, cx-5, cy-15);
+                u8g2.drawLine(cx-5, cy-15, cx+10, cy+10); // Chord
+                
+                // Antenna
+                u8g2.drawLine(cx-5, cy+5, cx+5, cy-5);
+                u8g2.drawDisc(cx+5, cy-5, 2); // LNB
+                
+                // Animated Waves
+                int frame = (millis() / 300) % 4;
+                if (frame >= 1) u8g2.drawCircle(cx+5, cy-5, 8, U8G2_DRAW_UPPER_RIGHT);
+                if (frame >= 2) u8g2.drawCircle(cx+5, cy-5, 14, U8G2_DRAW_UPPER_RIGHT);
+                if (frame >= 3) u8g2.drawCircle(cx+5, cy-5, 20, U8G2_DRAW_UPPER_RIGHT);
+                
+                u8g2.setFont(u8g2_font_6x10_tr);
+                const char* txt = "Searching...";
+                w = u8g2.getStrWidth(txt);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 100);
+                u8g2.print(txt);
+                
+                u8g2.sendBuffer();
+                return; // Skip rest of drawing
+            }
+
             // Target Info
             double targetLat = homeLat;
             double targetLon = homeLon;

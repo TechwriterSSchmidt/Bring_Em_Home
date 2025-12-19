@@ -1,103 +1,87 @@
 Bring Em Home - Connection Schematic
 =====================================
-Hardware Components:
-- Waveshare ESP32-S3-LCD-1.3 Board (240x240)
-- HGLRC M100-5883 M10 GPS Module (with integrated HMC5883L compass)
-- External Button, Vibration Motor, High Power LED
+Hardware Platform: Heltec Wireless Tracker (V1.1)
+Core: ESP32-S3 + SX1262 LoRa + UC6580 GNSS
+
+External Components:
+- 1.5" OLED Display (SH1107 Driver, 128x128, I2C)
+- Bosch BNO055 9-Axis Absolute Orientation Sensor (I2C)
+- Vibration Motor, High Power LED, (Optional) External Button
 
 Connection Diagram:
 ==================
 
                                     ┌─────────────────────────────┐
-                                    │  ESP32-S3 LCD 1.3 Board     │
+                                    │  Heltec Wireless Tracker    │
                                     │                             │
-         ┌──────────────────────────┤ GPIO 18 (UART RX)          │
-         │                          │ GPIO 17 (UART TX)          ├──────────┐
-         │              ┌───────────┤ GPIO 8  (I2C SDA)          │          │
-         │              │           │ GPIO 9  (I2C SCL)          ├─────┐    │
-         │              │           │                             │     │    │
-         │              │           │ 5V Power                    ├──┐  │    │
-         │              │           │ 3.3V Power                  ├─┐│  │    │
-         │              │           │ GND                         ├┐││  │    │
-         │              │           │                             ││││  │    │
-         │              │           │ Display (Built-in):         ││││  │    │
-         │              │           │  - CS: GPIO 39              ││││  │    │
-         │              │           │  - DC: GPIO 38              ││││  │    │
-         │              │           │  - RST: GPIO 42             ││││  │    │
-         │              │           │  - MOSI: GPIO 41            ││││  │    │
-         │              │           │  - SCK: GPIO 40             ││││  │    │
-         │              │           │  - BL: GPIO 45              ││││  │    │
-         │              │           │                             ││││  │    │
-         │              │           │ Peripherals:                ││││  │    │
-         │              │           │  - Button: GPIO 14          ││││  │    │
-         │              │           │  - Vibration: GPIO 13       ││││  │    │
-         │              │           │  - Flashlight: GPIO 21      ││││  │    │
-         │              │           └─────────────────────────────┘│││  │    │
-         │              │                                          │││  │    │
-         │              │           ┌──────────────────────────────┘││  │    │
-         │              │           │ ┌─────────────────────────────┘│  │    │
-         │              │           │ │ ┌──────────────────────────────┘    │
-         │              │           │ │ │                                    │
-         ▼              ▼           ▼ ▼ ▼                                    ▼
-    ┌────────────────────────────────────────┐                              
-    │    HGLRC M100-5883 M10 GPS Module      │                              
-    │                                         │                              
-    │  GPS Receiver (u-blox M10):            │                              
-    │   TX ◄───────────────────────────────────── (GPS TX to ESP RX)        
-    │   RX ◄───────────────────────────────────────────────────────────────┐
-    │   VCC (5V) ◄────────────────────────────┘                            │
-    │   GND ◄──────────────────────────────────┐                           │
-    │                                           │                           │
-    │  Magnetometer (HMC5883L):                │                           │
-    │   SDA ◄────────────────────────────────────── (I2C Data)             │
-    │   SCL ◄───────────────────────────────────────── (I2C Clock)         │
-    │   VCC (3.3V) ◄─────────────────────────────┘                         │
-    │   GND ◄─────────────────────────────────────┘                        │
-    └───────────────────────────────────────────────────────────────────────┘
+         ┌──────────────────────────┤ GPIO 41 (I2C SDA)          │
+         │              ┌───────────┤ GPIO 42 (I2C SCL)          │
+         │              │           │                             │
+         │              │           │ 3.3V Power                  ├──┐
+         │              │           │ GND                         ├──┤
+         │              │           │                             │  │
+         │              │           │ Internal Devices:           │  │
+         │              │           │  - GPS (RX:34, TX:33)       │  │
+         │              │           │  - LoRa (SPI: 8,9,10,11)    │  │
+         │              │           │                             │  │
+         │              │           │ Peripherals:                │  │
+         │              │           │  - Button: GPIO 0 (PRG)     │  │
+         │              │           │  - Vibration: GPIO 7        │  │
+         │              │           │  - Flashlight: GPIO 5       │  │
+         │              │           │  - VEXT Power: GPIO 3       │  │
+         │              │           │  - NeoPixel: GPIO 18        │  │
+         │              │           └─────────────────────────────┘  │
+         │              │                                            │
+         ▼              ▼                                            ▼
+    ┌─────────────────────────┐          ┌──────────────────────────────┐
+    │  1.5" OLED (SH1107)     │          │  Bosch BNO055 Compass        │
+    │                         │          │                              │
+    │   SDA ◄─────────────────┼──────────► SDA                          │
+    │   SCL ◄─────────────────┼──────────► SCL                          │
+    │   VCC ◄─────────────────┼──────────► VCC                          │
+    │   GND ◄─────────────────┴──────────► GND                          │
+    └─────────────────────────┘          └──────────────────────────────┘
 
 GPIO Pin Summary:
 =================
-ESP32-S3 Pin | Function              | Connection
+Heltec Pin   | Function              | Connection
 -------------|-----------------------|------------------------
-GPIO 8       | I2C SDA               | Magnetometer SDA
-GPIO 9       | I2C SCL               | Magnetometer SCL
-GPIO 13      | Vibration Motor       | Transistor Base / Motor Driver
-GPIO 14      | External Button       | Button (Input Pullup)
-GPIO 17      | UART TX               | GPS RX
-GPIO 18      | UART RX               | GPS TX
-GPIO 21      | Flashlight LED        | LED Driver / Transistor
-GPIO 38      | Display DC            | Display DC pin (built-in)
-GPIO 39      | SPI CS                | Display CS (built-in)
-GPIO 40      | SPI SCK               | Display SCK (built-in)
-GPIO 41      | SPI MOSI              | Display MOSI (built-in)
-GPIO 42      | Display Reset         | Display RST (built-in)
-GPIO 45      | Backlight Control     | Display backlight (built-in)
-
+GPIO 0       | User Button           | Built-in PRG Button (or external)
+GPIO 3       | VEXT Control          | Internal Power Switch (Sensors)
+GPIO 5       | Flashlight LED        | LED Driver / Transistor
+GPIO 7       | Vibration Motor       | Transistor Base / Motor Driver
+GPIO 18      | NeoPixel LED          | Internal WS2812 RGB LED
+GPIO 33      | GPS TX                | Internal UC6580
+GPIO 34      | GPS RX                | Internal UC6580
+GPIO 41      | I2C SDA               | OLED SDA & BNO055 SDA
+GPIO 42      | I2C SCL               | OLED SCL & BNO055 SCL
 
 Typical Current Consumption:
 ============================
 Component          | Current Draw | Voltage
 -------------------|--------------|----------
-ESP32-S3 Active    | ~30-50mA     | 3.3V
-Display Active     | ~100-120mA   | 3.3V
-GPS Module         | ~35-45mA     | 5V
-Magnetometer       | ~1-3mA       | 3.3V
+ESP32-S3 Active    | ~40-60mA     | 3.3V
+OLED Display       | ~20mA        | 3.3V
+GPS (Tracking)     | ~35mA        | 3.3V (via VEXT)
+LoRa (Rx/Idle)     | ~5mA         | 3.3V (via VEXT)
+LoRa (Tx SOS)      | ~120mA       | 3.3V (via VEXT)
+BNO055             | ~12mA        | 3.3V
 -------------------|--------------|----------
-Total System       | ~190mA       | 5V input
+Total (Avg)        | ~110mA       | Battery (LiPo)
 
 Recommended Wire Gauges:
 ========================
-Power (5V, GND):   22-24 AWG
-Signal (GPIO):     24-28 AWG
-I2C (SDA, SCL):    24-26 AWG (keep short!)
-UART (TX, RX):     24-26 AWG
+Power (3.3V, GND): 24 AWG
+I2C (SDA, SCL):    26-28 AWG (keep short!)
+Peripherals:       26-28 AWG
 
 Color Coding Recommendation:
 =============================
-Red:     5V power
-Orange:  3.3V power
+Red:     3.3V power
 Black:   Ground
-Yellow:  UART TX
+Blue:    SDA
+Yellow:  SCL
+
 Green:   UART RX
 Blue:    I2C SDA
 White:   I2C SCL

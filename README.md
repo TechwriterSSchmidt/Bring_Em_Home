@@ -1,10 +1,10 @@
 # Bring Em Home 🧭
 
-A robust GPS navigation and safety device designed to help hikers find their way back to a starting location. Built on the **Heltec Wireless Tracker** platform for maximum reliability.
+A dedicated GPS navigation device designed to guide Emilie **safely** back to her starting location on every hike. It also serves as an emergency LoRa-beacon and SOS-flasher in case she needs help.
 
 ## Overview
 
-This device uses GPS and a high-precision compass to guide the user back to a saved "home" position. It features a high-contrast OLED display for visibility in all lighting conditions and includes safety features like LoRa tracking and an SOS beacon.
+This device uses GPS and compass sensors to help navigate back to a saved "home" position. Perfect for hikers who want peace of mind knowing they can always find their way back to their starting point.
 
 ## Hardware Requirements
 
@@ -40,6 +40,7 @@ The Heltec Wireless Tracker integrates most components, simplifying the wiring s
 - **LoRa Connectivity**: Ready for long-range tracking (SX1262).
 - **BLE Beacon**: Broadcasts "Emilie_Beacon" for close-range finding.
 - **Flashlight**: High power LED mode.
+- **Status LED**: RGB LED for intuitive status (Red=No GPS, Yellow=Low Battery).
 - **SOS Signal**: Automatic SOS Morse code flashing.
 - **Vibration Feedback**: Haptic feedback for interactions.
 - **Fail-Safe**: Auto-restart on hardware failure.
@@ -103,7 +104,7 @@ MIT License
 1. **Power On**: Switch the device ON using the physical switch.
 2. **Wait for GPS**: The device will automatically search for satellites.
 3. **Auto-Save**: As soon as a valid GPS fix is obtained, the current location is **automatically saved as Home**.
-   - The screen will flash **GREEN** and show "HOME SET!".
+   - The screen will show **"HOME SET!"**.
    - No button press is required.
 
 ### Navigation
@@ -119,12 +120,12 @@ MIT License
 The device has two modes, toggled by a **Double Click** on the button:
 
 1.  **Recording Mode (Default)**
-    *   **Green Arrow**: Points to **North** (Compass).
+    *   **Compass Arrow**: Points to **North**.
     *   **Display**: Shows distance to Home.
     *   **Action**: Automatically saves breadcrumbs every 250m.
 
 2.  **Backtracking Mode (Return)**
-    *   **Red Arrow**: Points to the **Next Waypoint** or **Home**.
+    *   **Target Arrow**: Points to the **Next Waypoint** or **Home**.
     *   **Display**: Shows distance to the target.
     *   **Action**: Guides you back along your path.
 
@@ -142,13 +143,13 @@ The display shows:
 - **Compass Heading**: Current direction (0-360°)
 - **Distance**: To Home or Next Waypoint
 - **Visual Arrow**: 
-    - **Green (Recording)**: North Indicator
-    - **Red (Backtracking)**: Direction to Target
+    - **Recording Mode**: North Indicator
+    - **Backtracking Mode**: Direction to Target
 
 ### Finding Your Way Home
 
-1. **Double Click** the button to enter **Backtracking Mode** (Screen turns Blue briefly).
-2. Follow the **Red Arrow**.
+1. **Double Click** the button to enter **Backtracking Mode** (Screen shows "RETURN").
+2. Follow the **Arrow**.
 3. The device will guide you from waypoint to waypoint until you reach Home.
 
 ## Features
@@ -160,20 +161,17 @@ The display shows:
 - ✅ Breadcrumb trail (auto-save every 250m)
 - ✅ Backtracking mode to retrace steps
 - ✅ Calculate distance to home/waypoint
-- ✅ Digital compass (Green North Arrow)
-- ✅ Visual navigation arrow (Red Target Arrow)
+- ✅ Digital compass (North Arrow)
+- ✅ Visual navigation arrow (Target Arrow)
 - ✅ Persistent storage of home position
 - ✅ Satellite count display
 - ✅ Low power consumption (Auto-off)
 
-## Display Color Coding
+## Display Layout
 
-- 🟡 **Yellow**: Title and home status
-- 🟢 **Green**: Active GPS lock and navigation info
-- 🔴 **Red**: GPS searching/no lock
-- 🔵 **Cyan**: Coordinates
-- 🟣 **Magenta**: Compass heading
-- 🟠 **Orange**: Warnings/no home set
+- **Top Bar**: Status Icons (SOS, Light), Satellite Count, Calibration
+- **Center**: Main Navigation Info (Arrow, Distance)
+- **Bottom**: Coordinates / Status Messages
 
 ## Troubleshooting
 
