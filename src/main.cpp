@@ -11,10 +11,6 @@
 #include <Preferences.h>
 #include <vector>
 #include <WiFi.h> // For power management
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include <BLEBeacon.h>
 #include <esp_task_wdt.h>
 #include <RadioLib.h>
 #include <Adafruit_NeoPixel.h>
@@ -36,12 +32,10 @@ unsigned long vibrationStartTime = 0;
 bool isVibrating = false;
 
 // Feature State
-bool isBeaconActive = false;
 bool isFlashlightOn = false;
 bool isSOSActive = false;
 unsigned long lastSOSUpdate = 0;
 int sosStep = 0;
-BLEAdvertising *pAdvertising;
 
 // Objects
 TinyGPSPlus gps;
@@ -90,29 +84,6 @@ void triggerVibration() {
     isVibrating = true;
 }
 
-void initBLE() {
-    BLEDevice::init("Emilie_Beacon");
-    BLEServer *pServer = BLEDevice::createServer();
-    pAdvertising = BLEDevice::getAdvertising();
-    BLEService *pService = pServer->createService(BEACON_UUID);
-    pAdvertising->addServiceUUID(BEACON_UUID);
-    pAdvertising->setScanResponse(true);
-    pAdvertising->setMinPreferred(0x06);  
-    pAdvertising->setMinPreferred(0x12);
-}
-
-void setBeacon(bool enable) {
-    if (enable) {
-        BLEDevice::startAdvertising();
-        isBeaconActive = true;
-        Serial.println("BLE Beacon STARTED");
-    } else {
-        BLEDevice::stopAdvertising();
-        isBeaconActive = false;
-        Serial.println("BLE Beacon STOPPED");
-    }
-}
-
 void toggleFlashlight() {
     isFlashlightOn = !isFlashlightOn;
     isSOSActive = false; // Disable SOS if manual light is toggled
@@ -138,7 +109,7 @@ void updateSOS() {
     
     unsigned long now = millis();
 
-    // --- LoRa Transmission (Every 2 Minutes) ---
+    // --- LoRa Transmission (Every 1 Minute) ---
     if (now - lastLoRaTx > LORA_TX_INTERVAL) {
         lastLoRaTx = now;
         String msg = "SOS! Lat:" + String(gps.location.lat(), 6) + " Lon:" + String(gps.location.lng(), 6);
@@ -393,8 +364,6 @@ void setup() {
     u8g2.setDrawColor(1); // White
     u8g2.setFontPosTop(); // Easier coordinate handling
     
-    initBLE(); // Prepare BLE
-    
     // Memory Debugging
     Serial.printf("Total Heap: %d, Free Heap: %d\n", ESP.getHeapSize(), ESP.getFreeHeap());
     Serial.printf("Total PSRAM: %d, Free PSRAM: %d\n", ESP.getPsramSize(), ESP.getFreePsram());
@@ -441,7 +410,7 @@ void loop() {
     bno.getCalibration(&sys, &gyro, &accel, &mag);
 
     // 3. Button Logic
-    bool currentButtonState = digitalRead(BUTTON_PIN);
+    bool currentButtonState = digitalRead(PIN_BUTTON);
     
     // Button Pressed
     if (currentButtonState == LOW && lastButtonState == HIGH) {
@@ -453,9 +422,9 @@ void loop() {
     if (currentButtonState == LOW) {
         unsigned long pressDuration = millis() - buttonPressStartTime;
         
-        // 3s: Toggle Beacon (One shot)
+        // 3s: Toggle SOS (Long Press)
         if (!isLongPressHandled && pressDuration > 3000) {
-            setBeacon(!isBeaconActive);
+            isSOSActive = !isSOSActive;
             triggerVibration();
             isLongPressHandled = true;
             
@@ -463,8 +432,8 @@ void loop() {
             if (!isDisplayOn) { u8g2.setPowerSave(0); isDisplayOn = true; }
             u8g2.clearBuffer();
             u8g2.setFont(u8g2_font_ncenB14_tr);
-            u8g2.drawStr(10, 50, isBeaconActive ? "BEACON" : "BEACON");
-            u8g2.drawStr(30, 80, isBeaconActive ? "ON" : "OFF");
+            u8g2.drawStr(10, 50, isSOSActive ? "SOS" : "SOS");
+            u8g2.drawStr(30, 80, isSOSActive ? "ON" : "OFF");
             u8g2.sendBuffer();
             delay(1000);
             lastInteractionTime = millis();
@@ -590,7 +559,7 @@ void loop() {
         } else {
             Breadcrumb last = breadcrumbs.back();
             double dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), last.lat, last.lon);
-            if (dist > BREADCRUMB_DISTANCE) {
+            if (dist > BREADCRUMB_DIST) {
                 shouldSave = true;
             }
         }
@@ -650,7 +619,6 @@ void loop() {
             // Status Icons (Top Left)
             u8g2.setFont(u8g2_font_5x7_tr);
             u8g2.setCursor(0, 0);
-            if (isBeaconActive) u8g2.print("B ");
             if (isFlashlightOn) u8g2.print("L ");
             if (isSOSActive) u8g2.print("SOS ");
 

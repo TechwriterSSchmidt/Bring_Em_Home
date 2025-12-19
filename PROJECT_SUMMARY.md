@@ -265,7 +265,6 @@ Users must verify:
 - [ ] Touch screen menu interface
 - [ ] Power-saving sleep mode
 - [ ] Battery percentage display
-- [ ] Bluetooth phone integration
 - [ ] Weather alerts
 - [ ] Share location via WiFi
 

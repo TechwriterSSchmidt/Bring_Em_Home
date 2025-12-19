@@ -1,6 +1,6 @@
 # Bring Em Home 🧭
 
-A dedicated GPS navigation device designed to guide Emilie **safely** back to her starting location on every hike. It also serves as an emergency LoRa-beacon and SOS-flasher in case she needs help.
+A dedicated GPS navigation device designed to guide Emilie safely back to her starting location on every hike using GPS-breadcrumbs. It also serves as an emergency LoRa-beacon and SOS-flasher in case she needs help.
 
 ## Overview
 
@@ -36,15 +36,19 @@ The Heltec Wireless Tracker integrates most components, simplifying the wiring s
 - **Status LED (NeoPixel)**: GPIO 18 (Internal WS2812)
 
 ## Features
-- **GPS Navigation**: Breadcrumb tracking and "Return Home" arrow.
-- **High-Contrast Display**: 128x128 OLED for excellent readability.
-- **LoRa Connectivity**: Ready for long-range tracking (SX1262).
-- **BLE Beacon**: Broadcasts "Emilie_Beacon" for close-range finding.
-- **Flashlight**: High power LED mode.
-- **Status LED**: RGB LED for intuitive status (Red=No GPS, Yellow=Low Battery).
-- **SOS Signal**: Automatic SOS Morse code flashing.
-- **Vibration Feedback**: Haptic feedback for interactions.
-- **Fail-Safe**: Auto-restart on hardware failure.
+
+- ✅ Real-time GPS coordinate display
+- ✅ **Smart Auto-Home**: Automatically sets home on power-up when GPS fix is found.
+- ✅ **Crash Recovery**: Restores home position if device restarts due to software error.
+- ✅ Save home position manually with button press (Long Press)
+- ✅ Breadcrumb trail (auto-save every 250m)
+- ✅ Backtracking mode to retrace steps
+- ✅ Calculate distance to home/waypoint
+- ✅ Digital compass (North Arrow)
+- ✅ Visual navigation arrow (Target Arrow)
+- ✅ Persistent storage of home position
+- ✅ Satellite count display
+- ✅ Low power consumption (Auto-off)
 
 ## 🔋 Power & Battery Life
 
@@ -71,9 +75,6 @@ The device is optimized for long hikes. It uses dynamic CPU frequency scaling (2
 3. **Go Outside**: The device needs a clear view of the sky to get a GPS lock.
 4. **Set Home**: Long-press the button to save your current location as "Home".
 5. **Navigate**: Follow the arrow on the display to return.
-
-## License
-MIT License
 
 ## Software Setup
 
@@ -171,21 +172,6 @@ The display shows:
 2. Follow the **Arrow**.
 3. The device will guide you from waypoint to waypoint until you reach Home.
 
-## Features
-
-- ✅ Real-time GPS coordinate display
-- ✅ **Smart Auto-Home**: Automatically sets home on power-up when GPS fix is found.
-- ✅ **Crash Recovery**: Restores home position if device restarts due to software error.
-- ✅ Save home position manually with button press (Long Press)
-- ✅ Breadcrumb trail (auto-save every 250m)
-- ✅ Backtracking mode to retrace steps
-- ✅ Calculate distance to home/waypoint
-- ✅ Digital compass (North Arrow)
-- ✅ Visual navigation arrow (Target Arrow)
-- ✅ Persistent storage of home position
-- ✅ Satellite count display
-- ✅ Low power consumption (Auto-off)
-
 ## Display Layout
 
 - **Top Bar**: Status Icons (SOS, Light), Satellite Count, Calibration
@@ -227,24 +213,6 @@ The display shows:
 - Resolution: 0.73 mGauss
 - Range: ±8 Gauss
 - Accuracy: 1-2° heading accuracy
-
-### Power Consumption & Battery Life
-
-The device is designed for efficiency, but high-power features like the SOS beacon consume significant energy.
-
-**Component Power Draw:**
-- **Base System** (ESP32 + Sensors + Display + NeoPixel): ~135 mA
-- **SOS Mode** (Base + High Power LED + LoRa Tx): ~230 mA (Average)
-  - *Note: The SOS LED (0.75W) draws ~227mA when on. With the SOS Morse pattern (approx. 40% duty cycle), it adds ~92mA on average.*
-
-**Estimated Battery Life (85% Efficiency):**
-
-| Battery Capacity | Hiking Mode (Tracking) | SOS Mode (Emergency) |
-|------------------|------------------------|----------------------|
-| **1500 mAh**     | ~9.5 Hours             | ~5.5 Hours           |
-| **2000 mAh**     | ~12.5 Hours            | ~7.5 Hours           |
-
-*Estimates assume a typical LiPo battery voltage curve and 85% converter efficiency.*
 
 ## Future Enhancements
 

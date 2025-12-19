@@ -39,7 +39,7 @@ The device is operated by a single button (GPIO 14). The software includes debou
 | **Switch Mode** | 2 Clicks | Toggles between **Explore Mode** (Recording) and **Return Mode** (Backtracking). |
 | **Flashlight** | 3 Clicks | Toggles the High Power LED flashlight. |
 | **SOS Signal** | 4 Clicks | Activates SOS Morse code flashing. |
-| **Toggle Beacon** | Hold >3s | Activates/Deactivates Bluetooth Low Energy (BLE) Beacon for location finding. |
+| **SOS Signal** | Hold >3s | Activates/Deactivates SOS Mode (Alternative). |
 
 ## Understanding the Display
 

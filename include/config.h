@@ -38,9 +38,6 @@
 #define LORA_TX_INTERVAL    60000   // SOS Beacon Interval (ms) -> 1 Minute
 #define LORA_FREQ           868.0   // Frequency (EU868)
 
-// BLE Beacon
-#define BEACON_UUID         "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-
 // Navigation
 #define BREADCRUMB_DIST     250.0   // Distance between breadcrumbs (meters)
 
