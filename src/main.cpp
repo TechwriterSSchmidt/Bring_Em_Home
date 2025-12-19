@@ -937,23 +937,21 @@ void loop() {
                 }
             }
 
-            // Distance Text (Bottom)
+            // Distance & Label (Bottom Footer)
             if (gps.location.isValid() && (hasHome || currentMode == MODE_BRING_HOME)) {
-                String distStr;
-                if (dist < 1000) distStr = String(dist, 0) + " m";
-                else distStr = String(dist / 1000.0, 2) + " km";
-                
-                u8g2.setFont(u8g2_font_ncenB14_tr);
-                w = u8g2.getStrWidth(distStr.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 100);
-                u8g2.print(distStr);
-                
-                // Label
+                // Label (Bottom Left)
                 String label = targetIsHome ? "HOME" : "WAYPOINT";
-                u8g2.setFont(u8g2_font_6x10_tr);
-                w = u8g2.getStrWidth(label.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 120); // Bottom
+                u8g2.setFont(u8g2_font_ncenB10_tr);
+                u8g2.setCursor(0, 125);
                 u8g2.print(label);
+
+                // Distance (Bottom Right) - Always in km
+                String distStr = String(dist / 1000.0, 2) + " km";
+                
+                u8g2.setFont(u8g2_font_ncenB12_tr);
+                w = u8g2.getStrWidth(distStr.c_str());
+                u8g2.setCursor(SCREEN_WIDTH - w, 125);
+                u8g2.print(distStr);
             } else if (currentMode == MODE_EXPLORE && !hasHome) {
                  if (gps.location.isValid()) {
                     u8g2.setFont(u8g2_font_ncenB10_tr);

@@ -103,8 +103,6 @@ def generate_nav():
     
     draw_header(draw)
     
-    # Mode Title (Removed in code, but let's keep clean)
-    
     # Arrow (Center)
     cx, cy = 64, 64
     r = 35
@@ -126,17 +124,18 @@ def generate_nav():
     # W (Left)
     draw.text((cx-r_text-5, cy-5), "W", font=font_card, fill=FG_COLOR)
     
-    # Distance
-    font_dist = get_font(18, bold=True)
-    text = "450 m"
-    w = draw.textlength(text, font=font_dist)
-    draw.text(((WIDTH - w) / 2, 90), text, font=font_dist, fill=FG_COLOR)
+    # Footer (Bottom)
+    y_footer = 125 - 12 # Baseline approx
     
-    # Label
-    font_lbl = get_font(10)
-    text = "HOME"
-    w = draw.textlength(text, font=font_lbl)
-    draw.text(((WIDTH - w) / 2, 115), text, font=font_lbl, fill=FG_COLOR)
+    # Label (Left)
+    font_lbl = get_font(12, bold=True)
+    draw.text((0, y_footer), "HOME", font=font_lbl, fill=FG_COLOR)
+    
+    # Distance (Right)
+    font_dist = get_font(14, bold=True)
+    text = "0.45 km"
+    w = draw.textlength(text, font=font_dist)
+    draw.text((WIDTH - w, y_footer), text, font=font_dist, fill=FG_COLOR)
     
     img.save("mockup_nav.png")
     print("Generated mockup_nav.png")

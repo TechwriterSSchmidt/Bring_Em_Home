@@ -50,6 +50,28 @@ The Heltec Wireless Tracker integrates most components, simplifying the wiring s
 - ✅ Persistent storage of home position
 - ✅ Low power consumption (Auto-off)
 
+## User Interface
+
+The device features a high-contrast OLED display designed for readability in sunlight.
+
+### 1. Navigation Screen
+Shows the direction to Home (or next waypoint), current compass heading, and distance.
+- **Header**: Battery %, Compass Status, Satellite Signal.
+- **Center**: Navigation Arrow (Points to destination).
+- **Footer**: "HOME" label (Left) and Distance in km (Right).
+
+![Navigation Screen](mockup_nav.png)
+
+### 2. Searching for GPS
+Displayed when no GPS fix is available. Shows an animated status.
+
+![Searching Screen](mockup_searching.png)
+
+### 3. SOS Mode
+Activated by 5 rapid clicks or long press (3s). Displays a huge countdown to the next LoRa transmission.
+
+![SOS Screen](mockup_sos.png)
+
 ## 🔋 Power & Battery Life
 
 The device is optimized for long hikes. It uses dynamic CPU frequency scaling (240MHz active / 80MHz eco) and auto-display timeout.
