@@ -79,10 +79,12 @@ Arduino_GFX *tft = new Arduino_ST7789(bus, TFT_RST, ROTATION /* rotation */, fal
 // Touch Data
 touch_data_t touch_data;
 unsigned long lastTouchTime = 0;
+bool touchFound = false;
 
 
 // Initialization sequence for JD9853 / ST7789 on Waveshare 1.47"
 void lcd_reg_init(void) {
+  Serial.println("Sending LCD init sequence...");
   static const uint8_t init_operations[] = {
     BEGIN_WRITE,
     WRITE_COMMAND_8, 0x11,  // 2: Out of sleep mode, no args, w/delay
@@ -175,6 +177,7 @@ void lcd_reg_init(void) {
     END_WRITE
   };
   bus->batchOperation(init_operations, sizeof(init_operations));
+  Serial.println("LCD init sequence sent.");
 }
 
 TinyGPSPlus gps;
@@ -198,6 +201,7 @@ bool gpsValid = false;
 float heading = 0.0;
 float bearingToHome = 0.0;
 float distanceToHome = 0.0;
+bool compassFound = false;
 
 // Display update timing
 unsigned long lastDisplayUpdate = 0;
@@ -243,7 +247,7 @@ void setup() {
   lcd_reg_init(); // Custom init for JD9853/ST7789 on Waveshare 1.47"
   
   tft->setRotation(ROTATION); // Landscape
-  tft->fillScreen(BLACK);
+  tft->fillScreen(BLUE); // Changed to BLUE to verify display is working
   tft->setTextColor(WHITE);
   tft->setTextSize(1);
   
@@ -251,23 +255,50 @@ void setup() {
   tft->println("Bring Em Home");
   tft->println("Initializing...");
 
-  // Initialize I2C for compass
+  // I2C Scanner
+  Serial.println("Scanning I2C (Wire)...");
   Wire.begin(I2C_SDA, I2C_SCL);
-  
-  // Initialize I2C for Touch
+  for (byte i = 1; i < 127; i++) {
+    Wire.beginTransmission(i);
+    if (Wire.endTransmission() == 0) {
+      Serial.print("Found device at 0x");
+      Serial.println(i, HEX);
+    }
+  }
+
+  Serial.println("Scanning I2C (Wire1)...");
   Wire1.begin(TOUCH_SDA, TOUCH_SCL);
+  for (byte i = 1; i < 127; i++) {
+    Wire1.beginTransmission(i);
+    if (Wire1.endTransmission() == 0) {
+      Serial.print("Found device at 0x");
+      Serial.println(i, HEX);
+      if (i == AXS5106L_ADDR) {
+        touchFound = true;
+        Serial.println("Touch controller found!");
+      }
+    }
+  }
   
   // Initialize Touch
-  bsp_touch_init(&Wire1, TOUCH_RST, TOUCH_INT, ROTATION, SCREEN_WIDTH, SCREEN_HEIGHT);
-  tft->println("Touch: OK");
+  if (touchFound) {
+    bsp_touch_init(&Wire1, TOUCH_RST, TOUCH_INT, ROTATION, SCREEN_WIDTH, SCREEN_HEIGHT);
+    tft->println("Touch: OK");
+  } else {
+    Serial.println("Touch controller NOT found");
+    tft->println("Touch: FAIL");
+  }
   
   // Initialize compass
+  // Wire.begin(I2C_SDA, I2C_SCL); // Already called above
   if (mag.begin()) {
     Serial.println("HMC5883L detected!");
     tft->println("Compass: OK");
+    compassFound = true;
   } else {
     Serial.println("No HMC5883L detected");
     tft->println("Compass: FAIL");
+    compassFound = false;
   }
 
   // Initialize GPS
@@ -324,6 +355,8 @@ void readGPS() {
 }
 
 void readCompass() {
+  if (!compassFound) return;
+
   sensors_event_t event;
   mag.getEvent(&event);
   
@@ -518,19 +551,21 @@ void updateDisplay() {
 
 void loop() {
   // Read Touch
-  bsp_touch_read();
-  if (bsp_touch_get_coordinates(&touch_data)) {
-      Serial.printf("Touch: x=%d, y=%d\n", touch_data.coords[0].x, touch_data.coords[0].y);
-      
-      // Simple Touch Action: Save Home if touched in center
-      // Coordinates are relative to screen rotation
-      if (touch_data.coords[0].x > 50 && touch_data.coords[0].x < 270 && 
-          touch_data.coords[0].y > 50 && touch_data.coords[0].y < 120) {
-          if (millis() - lastTouchTime > 1000) {
-             saveHomePosition();
-             lastTouchTime = millis();
-          }
-      }
+  if (touchFound) {
+    bsp_touch_read();
+    if (bsp_touch_get_coordinates(&touch_data)) {
+        Serial.printf("Touch: x=%d, y=%d\n", touch_data.coords[0].x, touch_data.coords[0].y);
+        
+        // Simple Touch Action: Save Home if touched in center
+        // Coordinates are relative to screen rotation
+        if (touch_data.coords[0].x > 50 && touch_data.coords[0].x < 270 && 
+            touch_data.coords[0].y > 50 && touch_data.coords[0].y < 120) {
+            if (millis() - lastTouchTime > 1000) {
+              saveHomePosition();
+              lastTouchTime = millis();
+            }
+        }
+    }
   }
 
   // Read GPS
