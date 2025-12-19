@@ -1,6 +1,6 @@
 # Bring Em Home 🧭
 
-A GPS navigation device to guide Emelie back to her starting location when lost on hikes.
+A GPS navigation device to guide Emilie back to her starting location when lost on hikes.
 
 ## Overview
 
@@ -197,4 +197,4 @@ This project is open source. Feel free to use and modify as needed.
 
 ## Credits
 
-Created to help Emelie find her way home on hikes! 🏔️➡️🏠
+Created to help Emilie find her way home on hikes! 🏔️➡️🏠

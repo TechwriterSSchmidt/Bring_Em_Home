@@ -1,7 +1,7 @@
 /**
  * Bring Em Home - GPS Navigation Device
  * 
- * A device to guide Emelie back to her starting location when lost on hikes.
+ * A device to guide Emilie back to her starting location when lost on hikes.
  * 
  * Hardware:
  * - ESP32-S3 with Waveshare 1.47" Touch LCD Display

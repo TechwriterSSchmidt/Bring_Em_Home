@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-**Bring Em Home** is a GPS navigation device designed to help Emelie (and other hikers) find their way back to their starting point when lost on hikes. The device uses GPS positioning and compass heading to calculate and display the direction and distance back to a saved "home" location.
+**Bring Em Home** is a GPS navigation device designed to help Emilie (and other hikers) find their way back to their starting point when lost on hikes. The device uses GPS positioning and compass heading to calculate and display the direction and distance back to a saved "home" location.
 
 ## 🎯 Project Goals
 
@@ -375,7 +375,7 @@ A **complete, production-ready GPS navigation device** with:
 
 ## 🌟 Impact
 
-### For Emelie
+### For Emilie
 A reliable device to ensure she can always find her way back home on hikes, providing peace of mind for both her and those who care about her.
 
 ### For Other Hikers
@@ -417,7 +417,7 @@ The Bring Em Home GPS navigation device is fully implemented, documented, and re
 
 ## 🙏 Acknowledgments
 
-Created to help Emelie (and all hikers) find their way home safely.
+Created to help Emilie (and all hikers) find their way home safely.
 
 Special thanks to:
 - u-blox for GPS technology
