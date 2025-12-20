@@ -38,8 +38,7 @@ The device is operated by a single button (GPIO 14). The software includes debou
 | **Toggle Display** | 1 Click | Turns screen ON/OFF to save power. |
 | **Switch Mode** | 2 Clicks | Toggles between **Explorer Mode** (Recording) and **Bring Me Home Mode** (Backtracking). |
 | **Flashlight** | 3 Clicks | Toggles the High Power LED flashlight. |
-| **SOS Signal** | 4 Clicks | Activates SOS Morse code flashing. |
-| **SOS Signal** | Hold >3s | Activates/Deactivates SOS Mode (Alternative). |
+| **SOS Signal** | 5 Clicks | Starts 5s Countdown, then activates SOS Morse code & LoRa Beacon. |
 | **Reset Home** | Hold >10s | **(Explorer Mode only)** Overwrites the current Home position with your current location. Useful if you started tracking too early (e.g. at the bus stop). |
 
 ## Understanding the Display
@@ -69,6 +68,17 @@ The display uses a graphical interface to show all important information at a gl
   - **Left/Right**: Turn.
   - **Down**: Turn around.
   - In `EXPLORER` mode, the arrow acts as a compass (North indicator).
+  - **Compass Dots**: Small dots indicate intermediate directions (NE, SE, SW, NW).
+
+**Charging Screen:**
+- Appears automatically when a charger is connected (>4.4V).
+- Shows "Loading battery..." and a progress bar.
+- LED pulses green.
+
+**SOS Screen:**
+- **Countdown**: Shows "SOS IN 5..." allowing cancellation.
+- **Active**: Shows "SOS ACTIVE" and "SENDING..." when transmitting LoRa.
+- **Runtime**: Displays estimated battery runtime (e.g., "Est: 4.5h").
 
 **Bottom Area (Info):**
 - **Distance**: Distance to Home (in meters or km).

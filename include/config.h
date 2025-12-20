@@ -29,6 +29,8 @@
 #define PIN_FLASHLIGHT      5       // High Power LED
 
 // --- Power Management ---
+#define BATTERY_CAPACITY_MAH 2000   // Battery Capacity in mAh (Adjust to your battery)
+#define SOS_CURRENT_MA      220     // Estimated current consumption in SOS mode (mA)
 #define DISPLAY_TIMEOUT     120000  // Display Auto-Off (ms) -> 2 Minutes
 #define CPU_FREQ_HIGH       240     // MHz (Active)
 #define CPU_FREQ_LOW        80      // MHz (Standby)
@@ -43,12 +45,15 @@
 // LoRa SOS
 #define LORA_TX_INTERVAL    60000   // SOS Beacon Interval (ms) -> 1 Minute
 #define LORA_FREQ           868.0   // Frequency (EU868)
+#define SOS_MSG_TEXT        "SOS!"  // Custom SOS Message Text
 
 // Navigation
 #define BREADCRUMB_DIST     250.0   // Distance between breadcrumbs (meters)
-#define MAX_BREADCRUMBS     350     // Max breadcrumbs (approx 80-90km)
+#define MAX_BREADCRUMBS     1000    // Max breadcrumbs (Increased for smart tracking)
 #define MIN_SPEED_KPH       1.0     // Minimum speed to record breadcrumb (prevents GPS drift)
 #define MAX_SPEED_KPH       12.0    // Maximum realistic hiking speed (prevents GPS glitches)
+#define BREADCRUMB_TURN_THRESHOLD 45.0 // Degrees change to trigger breadcrumb
+#define BREADCRUMB_MIN_DIST_TURN  20.0 // Min distance to check for turn (meters)
 
 // User Interface
 #define CLICK_DELAY         500     // Max delay between clicks (ms)

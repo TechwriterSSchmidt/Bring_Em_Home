@@ -24,15 +24,15 @@
 | **Recording** | Tracking your hike. Shows Speed & Dist. |
 | **Backtracking** | Guiding you home. Shows Arrow & Dist. |
 
-## 🔘 Button Functions
+## 🔘 Button Functions (GPIO 0)
 
-| Button | Action | Function |
-|--------|--------|----------|
-| **PRG / GPIO 0** | Click | Toggle Info Screens |
-| | Hold (2s) | **Save Home Position** |
-| | Hold (5s) | Reset / Clear Home |
-| | 3x Click | Toggle Flashlight |
-| | 4x Click | SOS Mode |
+| Action | Gesture | Function |
+|--------|---------|----------|
+| **Toggle Display** | 1 Click | Screen ON/OFF |
+| **Switch Mode** | 2 Clicks | Explore ↔ Bring Me Home |
+| **Flashlight** | 3 Clicks | Toggle LED Light |
+| **SOS Mode** | 5 Clicks | Start SOS Countdown |
+| **Reset Home** | Hold >10s | Set NEW Home (Explore Mode) |
 
 ## 📊 Technical Info
 

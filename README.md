@@ -41,8 +41,10 @@ The Heltec Wireless Tracker integrates most components, simplifying the wiring s
 - ✅ **Smart Auto-Home**: Automatically sets home on power-up when GPS fix is found.
 - ✅ **Crash Recovery**: Restores home position and breadcrumbs if device restarts due to software error.
 - ✅ Save home position manually with button press (Long Press > 10s)
-- ✅ Breadcrumb trail (auto-save every 250m, persistent in Flash memory)
+- ✅ **Smart Breadcrumbs**: Records path points every 250m OR when changing direction (>45°) to capture turns accurately.
 - ✅ **Smart GPS Filter**: Ignores GPS drift when standing still or moving too fast (>12km/h).
+- ✅ **Safety First**: SOS Beacon with LoRa transmission, Morse code flasher, and battery runtime estimation.
+- ✅ **Charging Detection**: Automatically detects wall charger and shows charging progress.
 - ✅ Backtracking mode to retrace steps
 - ✅ Calculate distance to home/waypoint
 - ✅ Digital compass (North Arrow)
@@ -59,6 +61,12 @@ You can customize the device settings in `include/config.h`. This includes hardw
 - `USER_GENDER`: Your gender (e.g., "female"). *Optional: Comment out to disable.*
 - `USER_BIRTH_YEAR`: Your birth year (e.g., 1984). The device calculates age automatically from GPS time. *Optional: Comment out to disable.*
 - `USER_MED_ALLERGIES`: Medication allergies (e.g., "Penicillin"). *Optional: Comment out to disable.*
+
+**Navigation Settings:**
+- `BREADCRUMB_DIST`: Distance between regular breadcrumbs (default: 250m).
+- `BREADCRUMB_TURN_THRESHOLD`: Angle change to trigger a smart breadcrumb (default: 45°).
+- `BREADCRUMB_MIN_DIST_TURN`: Minimum distance moved before checking for a turn (default: 20m).
+- `MAX_BREADCRUMBS`: Maximum number of stored points (default: 1000).
 
 These details are included in the LoRa SOS beacon to assist rescue teams.
 

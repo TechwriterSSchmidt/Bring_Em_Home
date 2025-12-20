@@ -133,9 +133,18 @@ void updateSOS() {
     // --- LoRa Transmission (Every 1 Minute) ---
     if (now - lastLoRaTx > LORA_TX_INTERVAL) {
         lastLoRaTx = now;
-        String msg = "SOS! Lat:" + String(gps.location.lat(), 6) + 
+        int batPct = getBatteryPercent();
+        
+        // Calculate estimated runtime
+        // Capacity remaining = Total Capacity * (Percent / 100)
+        // Runtime (h) = Capacity remaining (mAh) / Current Draw (mA)
+        float remainingCap = (float)BATTERY_CAPACITY_MAH * ((float)batPct / 100.0);
+        float runtimeHours = remainingCap / (float)SOS_CURRENT_MA;
+
+        String msg = String(SOS_MSG_TEXT) + " Lat:" + String(gps.location.lat(), 6) + 
                      " Lon:" + String(gps.location.lng(), 6) + 
-                     " Bat:" + String(getBatteryPercent()) + "%";
+                     " Bat:" + String(batPct) + "%" +
+                     " Est:" + String(runtimeHours, 1) + "h";
 
         #ifdef USER_BLOOD_TYPE
         msg += " Type:" + String(USER_BLOOD_TYPE);
@@ -709,7 +718,7 @@ void loop() {
                 setCpuFrequencyMhz(240); // High performance mode
                 lastInteractionTime = millis();
             }
-        } else if (clickCount >= 2 && clickCount < 5) {
+        } else if (clickCount == 2) {
             // Double Click: Toggle Mode
             if (currentMode == MODE_EXPLORE) {
                 currentMode = MODE_BRING_HOME;
@@ -819,8 +828,31 @@ void loop() {
             } else {
                 Breadcrumb last = breadcrumbs.back();
                 double dist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), last.lat, last.lon);
+                
+                // Condition 1: Distance Threshold (Regular interval)
                 if (dist > BREADCRUMB_DIST) {
                     shouldSave = true;
+                }
+                // Condition 2: Smart Turn Detection
+                // If we moved enough to detect a turn (e.g. 20m) AND the direction changed significantly
+                else if (dist > BREADCRUMB_MIN_DIST_TURN) {
+                    // Calculate bearing from last breadcrumb to current position
+                    double currentSegmentBearing = gps.courseTo(last.lat, last.lon, gps.location.lat(), gps.location.lng());
+                    
+                    // We need the bearing of the PREVIOUS segment to compare.
+                    // If we only have 1 breadcrumb, we can't compare segments.
+                    if (breadcrumbs.size() >= 2) {
+                        Breadcrumb prev = breadcrumbs[breadcrumbs.size()-2];
+                        double prevSegmentBearing = gps.courseTo(prev.lat, prev.lon, last.lat, last.lon);
+                        
+                        double diff = abs(currentSegmentBearing - prevSegmentBearing);
+                        if (diff > 180) diff = 360 - diff; // Normalize to 0-180
+                        
+                        if (diff > BREADCRUMB_TURN_THRESHOLD) {
+                            shouldSave = true;
+                            Serial.printf("Smart Breadcrumb: Turn detected (%.1f deg)\n", diff);
+                        }
+                    }
                 }
             }
         }

@@ -47,7 +47,7 @@ Create a portable, easy-to-use device that:
 
 #### 2. Navigation Logic
 - **Home Point**: Saved to non-volatile memory.
-- **Breadcrumbs**: Records path points every 250m.
+- **Smart Breadcrumbs**: Records path points every 250m OR when changing direction (>45°).
 - **Compass Fusion**: Combines GPS bearing with magnetic heading.
 
 #### 3. User Interface (OLED)
@@ -56,6 +56,14 @@ Create a portable, easy-to-use device that:
   - "Waiting for GPS"
   - "Recording" (Speed, Dist, Satellites)
   - "Backtracking" (Big Arrow, Distance)
+  - "Charging" (Battery status & progress)
+  - "SOS Countdown" (Safety timer)
+
+#### 4. Safety Features
+- **SOS Beacon**: LoRa transmission with GPS, Battery, and Medical Info.
+- **Runtime Estimation**: SOS message includes estimated battery runtime.
+- **Charging Detection**: Automatic detection of wall charger (>4.4V).
+- **Smart Age**: Calculates age dynamically from birth year.
 
 ```
 
