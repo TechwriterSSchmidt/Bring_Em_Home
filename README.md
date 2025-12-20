@@ -185,6 +185,8 @@ The device has two modes, toggled by a **Double Click** on the button:
 - **Single Click** the button to toggle the display ON or OFF.
 - Turning the display ON resets the 5-minute timer.
 
+*> Note: Checkout the [Quick Reference](Docs/QUICK_REFERENCE.md) for more information.*
+
 
 ## Technical Details
 
