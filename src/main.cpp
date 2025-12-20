@@ -40,6 +40,9 @@ unsigned long sosCountdownStartTime = 0;
 bool isCharging = false;
 unsigned long lastSOSUpdate = 0;
 int sosStep = 0;
+int lastValidBatteryPct = 0; // Stores battery % before charging started
+float estimatedChargeTimeHours = 0; // Estimated time to full charge
+unsigned long chargeStartTime = 0;
 
 // Objects
 TinyGPSPlus gps;
@@ -450,6 +453,12 @@ void setup() {
     pinMode(PIN_FLASHLIGHT, OUTPUT);
     digitalWrite(PIN_FLASHLIGHT, LOW);
 
+    // VEXT Power Control (Enable GPS & Sensors)
+    // Heltec Wireless Tracker V1.1: GPIO 3 must be HIGH to enable GNSS
+    pinMode(PIN_VEXT, OUTPUT);
+    digitalWrite(PIN_VEXT, HIGH);
+    delay(500); // Give sensors time to wake up
+
     // Initialize Sensors
     if (!Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL)) {
         fatalError("I2C Bus Fehler!");
@@ -574,12 +583,24 @@ void loop() {
         uint32_t voltage_mv = analogReadMilliVolts(1) * 2;
         
         // Threshold: 4400mV (4.4V)
-        // This is safely above a fully charged LiPo (4.2V).
-        // If the user's observation of ~5V is correct, this will trigger reliably.
         if (voltage_mv > 4400) { 
-             isCharging = true;
+             if (!isCharging) {
+                 // Just started charging
+                 isCharging = true;
+                 chargeStartTime = millis();
+                 
+                 // Calculate estimated time to full
+                 // Capacity needed = Total * (1.0 - current_pct)
+                 // Time = Capacity / Current
+                 float needed_mAh = (float)BATTERY_CAPACITY_MAH * (1.0 - ((float)lastValidBatteryPct / 100.0));
+                 estimatedChargeTimeHours = needed_mAh / (float)CHARGE_CURRENT_MA;
+                 if (estimatedChargeTimeHours < 0) estimatedChargeTimeHours = 0;
+             }
         } else {
              isCharging = false;
+             // Update last valid battery percent while NOT charging
+             // This ensures we have a good reading before the voltage spikes
+             lastValidBatteryPct = getBatteryPercent();
         }
         lastChargeCheck = millis();
     }
@@ -920,12 +941,12 @@ void loop() {
                 u8g2.setFont(u8g2_font_ncenB10_tr);
                 const char* title = "Loading battery...";
                 w = u8g2.getStrWidth(title);
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 40);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 30);
                 u8g2.print(title);
                 
                 // Battery Icon Large
-                u8g2.drawFrame(44, 60, 40, 20); // Body
-                u8g2.drawBox(84, 66, 4, 8);     // Terminal
+                u8g2.drawFrame(44, 50, 40, 20); // Body
+                u8g2.drawBox(84, 56, 4, 8);     // Terminal
                 
                 // Animated Fill
                 static int chargeAnim = 0;
@@ -936,8 +957,18 @@ void loop() {
                 }
                 // 4 bars inside
                 for(int i=0; i<chargeAnim; i++) {
-                    u8g2.drawBox(46 + (i*9), 62, 7, 16);
+                    u8g2.drawBox(46 + (i*9), 52, 7, 16);
                 }
+
+                // Estimated Time
+                float hoursLeft = estimatedChargeTimeHours - ((float)(millis() - chargeStartTime) / 3600000.0);
+                if (hoursLeft < 0) hoursLeft = 0;
+                
+                String timeStr = "Est: " + String(hoursLeft, 1) + "h";
+                u8g2.setFont(u8g2_font_ncenB12_tr);
+                w = u8g2.getStrWidth(timeStr.c_str());
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 90);
+                u8g2.print(timeStr);
 
                 u8g2.sendBuffer();
                 return;
@@ -958,7 +989,7 @@ void loop() {
                 u8g2.setFont(u8g2_font_logisoso42_tn);
                 String cntStr = String(remaining);
                 w = u8g2.getStrWidth(cntStr.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 75);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 55); // Centered vertically
                 u8g2.print(cntStr);
                 
                 u8g2.setFont(u8g2_font_6x10_tr);
@@ -987,7 +1018,7 @@ void loop() {
                 u8g2.setFont(u8g2_font_logisoso42_tn);
                 String cntStr = String(secToNext);
                 w = u8g2.getStrWidth(cntStr.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 80);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 55); // Centered vertically
                 u8g2.print(cntStr);
 
                 // Footer info

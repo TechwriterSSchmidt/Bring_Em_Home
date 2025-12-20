@@ -1,5 +1,8 @@
 # Hardware Setup Guide
 
+## Reference Documentation
+- **Official Schematic**: [Heltec Wireless Tracker V1.1 Schematic](https://resource.heltec.cn/download/Wireless_Tracker/Wireless_Tacker1.1/HTIT-Tracker_V0.5.pdf)
+
 ## Components List
 
 ### Main Components

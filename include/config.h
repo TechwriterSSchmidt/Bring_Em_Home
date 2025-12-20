@@ -31,6 +31,7 @@
 // --- Power Management ---
 #define BATTERY_CAPACITY_MAH 2000   // Battery Capacity in mAh (Adjust to your battery)
 #define SOS_CURRENT_MA      220     // Estimated current consumption in SOS mode (mA)
+#define CHARGE_CURRENT_MA   500     // Estimated charging current (mA) - usually 500mA for USB
 #define DISPLAY_TIMEOUT     120000  // Display Auto-Off (ms) -> 2 Minutes
 #define CPU_FREQ_HIGH       240     // MHz (Active)
 #define CPU_FREQ_LOW        80      // MHz (Standby)
