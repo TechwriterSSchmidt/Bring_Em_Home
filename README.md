@@ -60,7 +60,7 @@ I've chosen a Heltec Wireless Tracker v1.1 integrates most components, simplifyi
 
 ## Configuration
 
-You can customize the device settings in `include/config.h`. This includes hardware pins, timeouts, and **User Data** for the SOS message.
+You can customize the device settings in `include/config.h`. This includes hardware pins, timeouts, and **User Data** for the SOS message. Use the OTA functionality to update the firmware.
 
 **User Data Options:**
 - `USER_BLOOD_TYPE`: Your blood type (e.g., "A+").
@@ -149,14 +149,6 @@ When the battery drops below 10%:
 - **LED Signal**: The small status LED flashes yellow every 10 seconds.
 - **Display**: The battery icon in the top-left corner appears empty.
 
-## Getting Started
-
-1. **Assemble Hardware**: Connect the OLED and BNO055 to the I2C pins (41/42).
-2. **Flash Firmware**: Use PlatformIO to upload the code.
-3. **Go Outside**: The device needs a clear view of the sky to get a GPS lock.
-4. **Set Home**: Long-press the button to save your current location as "Home".
-5. **Navigate**: Follow the arrow on the display to return.
-
 ## Software Setup
 
 ### Prerequisites
@@ -186,29 +178,8 @@ When the battery drops below 10%:
    pio device monitor
    ```
 
-### Building with Arduino IDE
-
-1. Install the following libraries via Library Manager:
-   - TinyGPSPlus
-   - GFX Library for Arduino (MoonOnOurNation)
-   - Adafruit BNO055
-   - Adafruit Unified Sensor
-
-2. Select Board: "ESP32S3 Dev Module"
-3. Select Partition Scheme:
-   - Recommended: **"8M Flash (3MB APP/1.5MB SPIFFS)"** (Allows larger firmware & OTA)
-   - Minimum: "Default 4MB with SPIFFS" (1.2MB APP)
-4. Open `src/main.cpp` and upload
 
 ## Usage
-
-### First Time Setup
-
-1. **Power On**: Switch the device ON using the physical switch.
-2. **Wait for GPS**: The device will automatically search for satellites.
-3. **Auto-Save**: As soon as a valid GPS fix is obtained, the current location is **automatically saved as Home**.
-   - The screen will show **"HOME SET!"**.
-   - No button press is required.
 
 ### Navigation
 
@@ -238,51 +209,8 @@ The device has two modes, toggled by a **Double Click** on the button:
 - **Single Click** the button to toggle the display ON or OFF.
 - Turning the display ON resets the 5-minute timer.
 
-### Navigation Indicators
+*> Note: Checkout the QUICK_REFERENCE.md for more information.*
 
-The display shows:
-- **GPS Status**: Satellite count
-- **Coordinates**: Real-time Lat/Lon at the bottom
-- **Compass Heading**: Current direction (0-360°)
-- **Distance**: To Home or Next Waypoint
-- **Visual Arrow**: 
-    - **Explorer Mode**: North Indicator
-    - **Bring me home! Mode**: Direction to Target
-
-### Finding Your Way Home
-
-1. **Double Click** the button to enter **Bring me home! Mode** (Screen shows "BRING ME HOME!").
-2. Follow the **Arrow**.
-3. The device will guide you from waypoint to waypoint until you reach Home.
-
-## Display Layout
-
-- **Top Bar**: Status Icons (SOS, Light), Satellite Count, Calibration
-- **Center**: Main Navigation Info (Arrow, Distance)
-- **Bottom**: Coordinates / Status Messages
-
-## Troubleshooting
-
-### GPS Not Locking
-- Ensure you're outdoors with clear view of sky
-- GPS may take 1-5 minutes for initial lock
-- Avoid urban canyons, dense forests, or indoor use
-- Check GPS module connections
-
-### Compass Reading Incorrect
-- Keep device away from magnetic materials (metal, speakers, motors)
-- Calibrate by moving device in figure-8 pattern
-- Check I2C connections to HMC5883L
-
-### Display Not Working
-- Check power supply (USB should provide 5V)
-- Verify backlight is enabled
-- Check SPI connections
-
-### Home Position Not Saving
-- Ensure GPS has valid lock before saving
-- Check that flash memory is not full
-- Try power cycling the device
 
 ## Technical Details
 
