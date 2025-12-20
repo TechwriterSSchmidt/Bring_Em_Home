@@ -98,7 +98,7 @@ def generate_searching():
     y_text = 46 # Approx top for baseline at 60
     
     draw.text((start_x, y_text), text, font=font_text, fill=FG_COLOR)
-    
+
     # Progress Bar
     bar_width = 64
     bar_height = 12
@@ -114,6 +114,60 @@ def generate_searching():
     
     img.save("mockup_searching.png")
     print("Generated mockup_searching.png")
+
+def draw_arrow(draw, cx, cy, r, angle_deg):
+    # Convert to radians
+    # -90 to point up at 0 deg
+    angle_rad = math.radians(angle_deg - 90)
+    
+    # Tip
+    x1 = cx + r * math.cos(angle_rad)
+    y1 = cy + r * math.sin(angle_rad)
+    
+    # Tail (indented)
+    x2 = cx - (r * 0.3) * math.cos(angle_rad)
+    y2 = cy - (r * 0.3) * math.sin(angle_rad)
+    
+    # Side 1 (Right)
+    x3 = cx + (r * 0.35) * math.cos(angle_rad + math.pi/2)
+    y3 = cy + (r * 0.35) * math.sin(angle_rad + math.pi/2)
+
+    # Side 2 (Left)
+    x4 = cx + (r * 0.35) * math.cos(angle_rad - math.pi/2)
+    y4 = cy + (r * 0.35) * math.sin(angle_rad - math.pi/2)
+    
+    # Draw two triangles
+    draw.polygon([(x1, y1), (x3, y3), (x2, y2)], fill=FG_COLOR)
+    draw.polygon([(x1, y1), (x4, y4), (x2, y2)], fill=FG_COLOR)
+    
+    # Center Dot
+    r_dot = 3
+    draw.ellipse((cx-r_dot, cy-r_dot, cx+r_dot, cy+r_dot), fill=FG_COLOR)
+
+def generate_breadcrumb():
+    img = create_image()
+    draw = ImageDraw.Draw(img)
+    
+    draw_header(draw)
+    
+    # Arrow pointing North-East (45 deg) relative to heading
+    # Let's say we need to turn right
+    draw_arrow(draw, WIDTH/2, 64, 30, 45)
+    
+    # Footer
+    font_footer = get_font(12, bold=True) # ncenB10 approx
+    font_dist = get_font(14, bold=True)   # ncenB12 approx
+    
+    # Label "WAYPOINT"
+    draw.text((0, 110), "WAYPOINT", font=font_footer, fill=FG_COLOR)
+    
+    # Distance "0.85 km"
+    dist_text = "0.85 km"
+    w = draw.textlength(dist_text, font=font_dist)
+    draw.text((WIDTH - w, 110), dist_text, font=font_dist, fill=FG_COLOR)
+    
+    img.save("mockup_breadcrumb.png")
+    print("Generated mockup_breadcrumb.png")
 
 def generate_nav():
     img = create_image()
@@ -255,3 +309,4 @@ if __name__ == "__main__":
     generate_charging()
     generate_sos_countdown()
     generate_ota()
+    generate_breadcrumb()
