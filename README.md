@@ -91,12 +91,15 @@ Displayed when no GPS fix is available. Shows "Searching SATs" with an animated 
 Activated by 5 rapid clicks. 
 1.  **Countdown**: A 5-second countdown allows you to cancel accidental triggers.
 2.  **Active**: Displays a huge countdown to the next LoRa transmission.
+3.  **Runtime**: Shows estimated battery runtime based on current consumption.
 
 ![SOS Countdown](mockup_sos_countdown.png)
 ![SOS Screen](mockup_sos.png)
 
 ### 4. Charging Mode
-Displayed when connected to a charger (Voltage > 4.4V). Shows "Loading battery..." and an animated battery icon.
+Displayed when connected to a charger (Voltage > 4.4V). 
+- Shows "Loading battery..." and an animated battery icon.
+- Displays **Estimated Time to Full** (e.g., "Est: 1.5h").
 
 ![Charging Screen](mockup_charging.png)
 

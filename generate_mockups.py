@@ -70,7 +70,8 @@ def generate_sos():
     font_huge = get_font(42, bold=True)
     text = "118"
     w = draw.textlength(text, font=font_huge)
-    draw.text(((WIDTH - w) / 2, 50), text, font=font_huge, fill=FG_COLOR)
+    # Centered vertically at Y=45 (approx)
+    draw.text(((WIDTH - w) / 2, 45), text, font=font_huge, fill=FG_COLOR)
     
     # Footer
     font_sub = get_font(10)
@@ -176,19 +177,25 @@ def generate_charging():
     font_title = get_font(14, bold=True)
     text = "Loading battery..."
     w = draw.textlength(text, font=font_title)
-    draw.text(((WIDTH - w) / 2, 40), text, font=font_title, fill=FG_COLOR)
+    draw.text(((WIDTH - w) / 2, 30), text, font=font_title, fill=FG_COLOR)
     
     # Battery Icon Large
-    # u8g2.drawFrame(44, 60, 40, 20); // Body
-    # u8g2.drawBox(84, 66, 4, 8);     // Terminal
-    draw.rectangle((44, 60, 84, 80), outline=FG_COLOR)
-    draw.rectangle((84, 66, 88, 74), fill=FG_COLOR)
+    # u8g2.drawFrame(44, 50, 40, 20); // Body
+    # u8g2.drawBox(84, 56, 4, 8);     // Terminal
+    draw.rectangle((44, 50, 84, 70), outline=FG_COLOR)
+    draw.rectangle((84, 56, 88, 64), fill=FG_COLOR)
     
     # Animated Fill (3 bars)
-    # u8g2.drawBox(46 + (i*9), 62, 7, 16);
+    # u8g2.drawBox(46 + (i*9), 52, 7, 16);
     for i in range(3):
         x = 46 + (i * 9)
-        draw.rectangle((x, 62, x + 7, 78), fill=FG_COLOR)
+        draw.rectangle((x, 52, x + 7, 68), fill=FG_COLOR)
+        
+    # Estimated Time
+    font_est = get_font(14, bold=True)
+    text = "Est: 1.5h"
+    w = draw.textlength(text, font=font_est)
+    draw.text(((WIDTH - w) / 2, 90), text, font=font_est, fill=FG_COLOR)
         
     img.save("mockup_charging.png")
     print("Generated mockup_charging.png")
@@ -207,7 +214,8 @@ def generate_sos_countdown():
     font_huge = get_font(42, bold=True)
     text = "3"
     w = draw.textlength(text, font=font_huge)
-    draw.text(((WIDTH - w) / 2, 75), text, font=font_huge, fill=FG_COLOR)
+    # Centered vertically at Y=45 (approx)
+    draw.text(((WIDTH - w) / 2, 45), text, font=font_huge, fill=FG_COLOR)
     
     # Footer
     font_sub = get_font(10)

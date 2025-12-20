@@ -989,7 +989,7 @@ void loop() {
                 u8g2.setFont(u8g2_font_logisoso42_tn);
                 String cntStr = String(remaining);
                 w = u8g2.getStrWidth(cntStr.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 55); // Centered vertically
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 45); // Centered vertically (adjusted)
                 u8g2.print(cntStr);
                 
                 u8g2.setFont(u8g2_font_6x10_tr);
@@ -1018,7 +1018,7 @@ void loop() {
                 u8g2.setFont(u8g2_font_logisoso42_tn);
                 String cntStr = String(secToNext);
                 w = u8g2.getStrWidth(cntStr.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 55); // Centered vertically
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 45); // Centered vertically (adjusted)
                 u8g2.print(cntStr);
 
                 // Footer info
