@@ -6,6 +6,12 @@ A dedicated GPS navigation device designed to guide Emilie safely back to her st
 
 This device uses GPS and compass sensors to help navigate back to a saved "home" position. Perfect for hikers who want peace of mind knowing they can always find their way back to their starting point.
 
+## Support my projects
+
+Your tip motivates me to continue developing nerdy stuff for the DIY community. Thank you very much for your support!
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D01HVT9A)
+
 ## Hardware Requirements
 
 - **Heltec Wireless Tracker (V1.1)**
@@ -294,12 +300,6 @@ Feel free to open issues or submit pull requests for improvements!
 ## License
 
 This project is open source. Feel free to use and modify as needed.
-
-## Support my projects
-
-Your tip motivates me to continue developing nerdy stuff for the DIY community. Thank you very much for your support!
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D01HVT9A)
 
 ## Credits
 
