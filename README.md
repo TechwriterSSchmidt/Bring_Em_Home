@@ -283,15 +283,9 @@ The display shows:
 
 ## Future Enhancements
 
-- [ ] Add waypoint system (multiple saved locations)
-- [ ] Track and display hiking path
-- [ ] Battery percentage display
-- [ ] Power saving sleep mode
-- [ ] Touch screen interface for settings
-- [ ] Log coordinates to SD card
+- [ ] Add target coordinates via captive portal
 - [ ] Add altitude display
 - [ ] Speed and time estimates
-- [ ] Breadcrumb trail feature
 
 ## Contributing
 
@@ -300,6 +294,12 @@ Feel free to open issues or submit pull requests for improvements!
 ## License
 
 This project is open source. Feel free to use and modify as needed.
+
+## Support my projects
+
+Your tip motivates me to continue developing nerdy stuff for the DIY community. Thank you very much for your support!
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D01HVT9A)
 
 ## Credits
 
