@@ -2,19 +2,19 @@
 
 ## 🚀 Quick Start (First Use)
 
-1. ⚡ Plug in USB-C cable (or ensure battery is charged)
-2. ⏰ Wait for GPS lock (1-5 min outdoors)
+1. Plug in USB-C cable (or ensure battery is charged)
+2. Wait for GPS lock (1-5 min outdoors)
    - *Screen says: "Waiting for GPS..."*
-3. 📍 Long-Press Button (2s) to save home
-4. ✅ Screen shows "Home Saved!"
+3. Long-Press Button (2s) to save home
+4. Screen shows "Home Saved!"
 
 ## 🎯 Navigation
 
 ### Follow the Arrow Method
-1. 👀 Look at the big arrow on the OLED
-2. 🔄 Turn until arrow points **UP** ⬆️
-3. 🚶 Walk straight ahead
-4. 🏠 Distance counts down as you get closer
+1. Look at the big arrow on the OLED
+2. Turn until arrow points **UP**
+3. Walk straight ahead
+4. Distance counts down as you get closer
 
 ## 📱 Display Guide (OLED)
 
@@ -62,14 +62,14 @@
 
 ## ⚠️ Important Tips
 
-### ✅ DO:
+### DO:
 - Wait for GPS LOCKED before saving home
 - Check direction every 30-60 seconds
 - Stop to let GPS update if uncertain
 - Carry backup map & compass
 - Keep device level for compass accuracy
 
-### ❌ DON'T:
+### DON'T:
 - Run (GPS can't keep up)
 - Navigate indoors (no GPS signal)
 - Hold near metal objects
@@ -199,4 +199,4 @@ Add your local emergency number: ___________
 
 **Print this card and laminate it for field use!**
 
-**Have a safe hike! 🏔️➡️🏠**
+**Have a safe hike!**
