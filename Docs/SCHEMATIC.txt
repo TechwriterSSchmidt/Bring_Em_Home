@@ -1,35 +1,37 @@
 Bring Em Home - Connection Schematic
 =====================================
-Hardware Platform: Heltec Wireless Tracker (V1.1)
-Core: ESP32-S3 + SX1262 LoRa + UC6580 GNSS
+Hardware Platform: Heltec Mesh Node T114 (nRF52840)
+Core: nRF52840 + SX1262 LoRa + L76K GNSS
 
 External Components:
 - 1.5" OLED Display (SH1107 Driver, 128x128, I2C)
 - Bosch BNO055 9-Axis Absolute Orientation Sensor (I2C)
-- Vibration Motor, High Power LED, (Optional) External Button
+- Vibration Motor, High Power LED, External Button
 
 Connection Diagram:
 ==================
 
                                     ┌─────────────────────────────┐
-                                    │  Heltec Wireless Tracker    │
+                                    │  Heltec Mesh Node T114      │
                                     │                             │
-         ┌──────────────────────────┤ GPIO 41 (I2C SDA)          │
-         │              ┌───────────┤ GPIO 42 (I2C SCL)          │
+         ┌──────────────────────────┤ P0.16 (I2C SDA)             │
+         │              ┌───────────┤ P0.13 (I2C SCL)             │
          │              │           │                             │
-         │              │           │ 3.3V Power                  ├──┐
+         │              │           │ 3.3V Power (VEXT)           ├──┐
          │              │           │ GND                         ├──┤
          │              │           │                             │  │
          │              │           │ Internal Devices:           │  │
-         │              │           │  - GPS (RX:34, TX:33)       │  │
-         │              │           │  - LoRa (SPI: 8,9,10,11)    │  │
+         │              │           │  - GPS (RX:P1.07, TX:P1.05) │  │
+         │              │           │  - LoRa (SPI Internal)      │  │
          │              │           │                             │  │
          │              │           │ Peripherals:                │  │
-         │              │           │  - Button: GPIO 6           │  │
-         │              │           │  - Vibration: GPIO 7        │  │
-         │              │           │  - Flashlight: GPIO 5       │  │
-         │              │           │  - VEXT Power: GPIO 3       │  │
-         │              │           │  - NeoPixel: GPIO 18        │  │
+         │              │           │  - Button: P1.10 (Pin 42)   │  │
+         │              │           │  - Vibration: P1.04 (Pin 36)│  │
+         │              │           │  - Flashlight: P1.06 (Pin 38│  │
+         │              │           │  - WS2812 LED: P1.08 (Pin 40│  │
+         │              │           │  - VEXT Power: P0.21 (Pin 21│  │
+         │              │           │  - Battery ADC: P0.04 (Pin 4│  │
+         │              │           │  - Bat Ctrl: P0.06 (Pin 6)  │  │
          │              │           └─────────────────────────────┘  │
          │              │                                            │
          ▼              ▼                                            ▼
@@ -42,86 +44,16 @@ Connection Diagram:
     │   GND ◄─────────────────┴──────────► GND                          │
     └─────────────────────────┘          └──────────────────────────────┘
 
-GPIO Pin Summary:
-=================
-Heltec Pin   | Function              | Connection
--------------|-----------------------|------------------------
-GPIO 6       | User Button           | External Button (Active Low)
-GPIO 3       | VEXT Control          | Internal Power Switch (Sensors)
-GPIO 5       | Flashlight LED        | LED Driver / Transistor
-GPIO 7       | Vibration Motor       | Transistor Base / Motor Driver
-GPIO 18      | NeoPixel LED          | Internal WS2812 RGB LED
-GPIO 33      | GPS TX                | Internal UC6580
-GPIO 34      | GPS RX                | Internal UC6580
-GPIO 41      | I2C SDA               | OLED SDA & BNO055 SDA
-GPIO 42      | I2C SCL               | OLED SCL & BNO055 SCL
-
-Typical Current Consumption:
-============================
-Component          | Current Draw | Voltage
--------------------|--------------|----------
-ESP32-S3 Active    | ~40-60mA     | 3.3V
-OLED Display       | ~20mA        | 3.3V
-GPS (Tracking)     | ~35mA        | 3.3V (via VEXT)
-LoRa (Rx/Idle)     | ~5mA         | 3.3V (via VEXT)
-LoRa (Tx SOS)      | ~120mA       | 3.3V (via VEXT)
-BNO055             | ~12mA        | 3.3V
--------------------|--------------|----------
-Total (Avg)        | ~110mA       | Battery (LiPo)
-
-Recommended Wire Gauges:
-========================
-Power (3.3V, GND): 24 AWG
-I2C (SDA, SCL):    26-28 AWG (keep short!)
-Peripherals:       26-28 AWG
-
-Color Coding Recommendation:
-=============================
-Red:     3.3V power
-Black:   Ground
-Blue:    SDA
-Yellow:  SCL
-
-Green:   UART RX
-Blue:    I2C SDA
-White:   I2C SCL
-
-Layout Tips:
-============
-1. Position GPS module on top of enclosure for best sky view
-2. Route antenna away from display and other electronics
-3. Keep magnetometer at least 5cm from motors, speakers, batteries
-4. Display should face user
-5. Provide access to BOOT button for saving home position
-6. Consider mounting points for backpack or belt clip
-7. USB-C port should be accessible for charging
-
-Testing Points:
-===============
-Before sealing enclosure, verify:
-☐ GPS TX → ESP RX shows NMEA sentences in serial monitor
-☐ ESP TX → GPS RX (can send configuration commands)
-☐ I2C scanner detects HMC5883L at address 0x1E
-☐ Display shows boot screen and UI
-☐ BOOT button press triggers home save
-☐ Compass heading changes when device is rotated
-☐ GPS locks after 1-5 minutes outdoors
-
-Troubleshooting:
-================
-No GPS data:     Check TX/RX connections, try swapping them
-No compass:      Verify I2C address (0x1E), check SDA/SCL wiring
-Display blank:   Check backlight (GPIO 38), verify SPI connections
-Button not working: Check GPIO 0 connection, verify pull-up
-
-Alternative Pin Configuration:
-===============================
-If you need to use different pins, update these in main.cpp:
-
-#define GPS_RX     18  // ESP32 RX from GPS TX
-#define GPS_TX     17  // ESP32 TX to GPS RX
-#define I2C_SDA    8   // I2C Data
-#define I2C_SCL    9   // I2C Clock
-#define BTN_SAVE   0   // Save button
-
-Note: Display pins are fixed by Waveshare board design.
+GPIO Pin Summary (Arduino Pin Numbers):
+=======================================
+Pin Name     | Arduino Pin | nRF Pin | Function
+-------------|-------------|---------|------------------------
+PIN_BUTTON   | 42          | P1.10   | External Button (Active Low)
+PIN_VIB      | 36          | P1.04   | Vibration Motor
+PIN_LED      | 38          | P1.06   | Flashlight LED
+PIN_NEOPIXEL | 40          | P1.08   | External WS2812 LED Data
+PIN_VEXT     | 21          | P0.21   | Sensor Power Control
+PIN_BAT_ADC  | 4           | P0.04   | Battery Voltage ADC
+PIN_BAT_CTRL | 6           | P0.06   | Battery Divider Control (Active HIGH)
+PIN_SDA      | 16          | P0.16   | I2C Data
+PIN_SCL      | 13          | P0.13   | I2C Clock
