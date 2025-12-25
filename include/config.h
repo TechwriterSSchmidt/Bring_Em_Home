@@ -63,5 +63,47 @@
 // User Interface
 #define CLICK_DELAY         500     // Max delay between clicks (ms)
 #define LED_BRIGHTNESS      100     // NeoPixel Brightness (0-255) -> ~40%
+#define DISPLAY_REFRESH_RATE 100    // Display refresh interval (ms)
+#define LED_UPDATE_INTERVAL 20      // LED update interval (ms)
+#define GPS_SEARCH_ANIM_INTERVAL 50 // GPS search animation speed (ms)
+#define CHARGE_ANIM_INTERVAL 500    // Charging animation speed (ms)
+
+// Button Timings
+#define LONG_PRESS_DURATION 3000    // Long press to Power Off (ms)
+#define VERY_LONG_PRESS_DURATION 10000 // Very long press to Reset Home (ms)
+#define SOS_COUNTDOWN_DURATION 5000 // SOS Countdown duration (ms)
+
+// Vibration Patterns
+#define VIB_DURATION_SHORT  200     // Short vibration (ms)
+#define VIB_DURATION_LONG   500     // Long vibration (ms)
+
+// Feedback Durations
+#define FEEDBACK_DURATION_SHORT 1000 // Short feedback message duration (ms)
+#define FEEDBACK_DURATION_LONG  2000 // Long feedback message duration (ms)
+
+// Hardware Constants
+#define BNO055_ID           55      // BNO055 Sensor ID
+#define BNO055_ADDRESS      0x28    // BNO055 I2C Address
+#define I2C_SPEED_FAST      400000  // I2C Speed (400kHz)
+#define GPS_BAUD            9600    // GPS Serial Baud Rate
+#define NEOPIXEL_INDEX      0       // Index of the single NeoPixel
+
+// LoRa Configuration
+#define LORA_BW             125.0   // Bandwidth (kHz)
+#define LORA_SF             9       // Spreading Factor
+#define LORA_CR             7       // Coding Rate (4/7)
+#define LORA_SYNC_WORD      0x12    // Sync Word (Private Network)
+#define LORA_POWER          10      // Output Power (dBm)
+#define LORA_PREAMBLE       8       // Preamble Length
+#define LORA_GAIN           0       // Gain (0 = Auto)
+
+// UI Layout
+#define STATUS_BAR_LINE_Y   15      // Y-coordinate of the status bar separator
+#define BATTERY_BAR_HEIGHT  8       // Max height of battery bar
+#define BREADCRUMB_REACH_DIST 20.0  // Distance to consider breadcrumb reached (m)
+
+// Display Power Management
+#define DISPLAY_POWER_SAVE_ON  1    // Display OFF
+#define DISPLAY_POWER_SAVE_OFF 0    // Display ON
 
 #endif

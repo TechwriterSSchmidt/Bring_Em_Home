@@ -44,7 +44,7 @@ unsigned long chargeStartTime = 0;
 
 // Objects
 TinyGPSPlus gps;
-Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28);
+Adafruit_BNO055 bno = Adafruit_BNO055(BNO055_ID, BNO055_ADDRESS);
 
 // Use default SPI instance for nRF52
 SPIClass& loraSPI = SPI;
@@ -115,7 +115,7 @@ void showFeedback(String title, String sub, int duration) {
     feedbackSub = sub;
     feedbackEndTime = millis() + duration;
     if (!isDisplayOn) {
-        u8g2.setPowerSave(0);
+        u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF);
         isDisplayOn = true;
     }
 }
@@ -158,7 +158,7 @@ void powerOff() {
     digitalWrite(PIN_VIB_MOTOR, LOW);
 
     // 2. Display OFF
-    u8g2.setPowerSave(1);
+    u8g2.setPowerSave(DISPLAY_POWER_SAVE_ON);
     
     // 3. Sensors OFF
     digitalWrite(PIN_VEXT, LOW);
@@ -497,7 +497,7 @@ void setup() {
 
     Wire.setPins(PIN_I2C_SDA, PIN_I2C_SCL);
     Wire.begin();
-    Wire.setClock(400000); // Increase I2C speed to 400kHz to prevent display blocking GPS
+    Wire.setClock(I2C_SPEED_FAST); // Increase I2C speed to 400kHz to prevent display blocking GPS
     
     // Initialize BNO055 with Retry Logic
     bool bnoFound = false;
@@ -518,12 +518,12 @@ void setup() {
     }
     
     Serial1.setPins(PIN_GPS_RX, PIN_GPS_TX);
-    Serial1.begin(9600);
+    Serial1.begin(GPS_BAUD);
 
     loraSPI.setPins(PIN_LORA_MISO, PIN_LORA_SCK, PIN_LORA_MOSI);
     loraSPI.begin();
 
-    int state = radio.begin(LORA_FREQ, 125.0, 9, 7, 0x12, 10, 8, 0, false);
+    int state = radio.begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR, LORA_SYNC_WORD, LORA_POWER, LORA_PREAMBLE, LORA_GAIN, false);
     if (state == RADIOLIB_ERR_NONE) {
         Serial.println("LoRa Init Success!");
         radio.setDio1Action(setFlag);
@@ -615,7 +615,7 @@ void loop() {
 
     // Update Status LED (50Hz)
     static unsigned long lastLedUpdate = 0;
-    if (millis() - lastLedUpdate > 20) {
+    if (millis() - lastLedUpdate > LED_UPDATE_INTERVAL) {
         if (isCharging) {
             static int chargeBright = 0;
             static int chargeDir = 5;
@@ -653,14 +653,14 @@ void loop() {
     if (currentButtonState == LOW) {
         unsigned long pressDuration = millis() - buttonPressStartTime;
         
-        if (!isLongPressHandled && pressDuration > 3000) {
+        if (!isLongPressHandled && pressDuration > LONG_PRESS_DURATION) {
              if (currentMode == MODE_EXPLORE || currentMode == MODE_RETURN) {
                  isLongPressHandled = true;
                  powerOff();
              }
         }
 
-        if (!isLongPressHandled && pressDuration > 10000) {
+        if (!isLongPressHandled && pressDuration > VERY_LONG_PRESS_DURATION) {
             if (currentMode == MODE_EXPLORE && gps.location.isValid()) {
                 homeLat = gps.location.lat();
                 homeLon = gps.location.lng();
@@ -672,7 +672,7 @@ void loop() {
                     pixels.clear(); pixels.show();
                     digitalWrite(PIN_VIB_MOTOR, LOW); delay(100);
                 }
-                showFeedback("HOME RESET!", "", 2000);
+                showFeedback("HOME RESET!", "", FEEDBACK_DURATION_LONG);
                 lastInteractionTime = millis();
             }
         }
@@ -689,15 +689,15 @@ void loop() {
     if (clickCount > 0 && (millis() - lastClickTime > CLICK_DELAY)) {
         if (isSOSCountdown) {
             isSOSCountdown = false;
-            showFeedback("SOS CANCELLED", "", 2000);
+            showFeedback("SOS CANCELLED", "", FEEDBACK_DURATION_LONG);
             clickCount = 0;
             lastInteractionTime = millis();
         } else if (clickCount == 1) {
             if (isDisplayOn) {
-                u8g2.setPowerSave(1);
+                u8g2.setPowerSave(DISPLAY_POWER_SAVE_ON);
                 isDisplayOn = false;
             } else {
-                u8g2.setPowerSave(0);
+                u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF);
                 isDisplayOn = true;
                 lastInteractionTime = millis();
             }
@@ -715,10 +715,10 @@ void loop() {
                 } else {
                     targetBreadcrumbIndex = -1;
                 }
-                showFeedback("RETURN MODE", "", 1000);
+                showFeedback("RETURN MODE", "", FEEDBACK_DURATION_SHORT);
             } else {
                 currentMode = MODE_EXPLORE;
-                showFeedback("EXPLORE MODE", "", 1000);
+                showFeedback("EXPLORE MODE", "", FEEDBACK_DURATION_SHORT);
             }
             lastInteractionTime = millis();
         } else if (clickCount == 3) {
@@ -727,14 +727,14 @@ void loop() {
         } else if (clickCount >= 5) {
             isSOSCountdown = true;
             sosCountdownStartTime = millis();
-            if (!isDisplayOn) { u8g2.setPowerSave(0); isDisplayOn = true; }
+            if (!isDisplayOn) { u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF); isDisplayOn = true; }
             triggerVibration();
         }
         clickCount = 0;
     }
 
     if (isSOSCountdown) {
-        if (millis() - sosCountdownStartTime > 5000) {
+        if (millis() - sosCountdownStartTime > SOS_COUNTDOWN_DURATION) {
             isSOSCountdown = false;
             toggleSOS();
             triggerVibration(); delay(100); triggerVibration(); delay(100); triggerVibration();
@@ -749,7 +749,7 @@ void loop() {
         Serial.println("Auto-Home Set (First Fix)!");
         String latStr = "Lat: " + String(homeLat, 4);
         String lonStr = "Lon: " + String(homeLon, 4);
-        showFeedback("HOME SET!", latStr + "\n" + lonStr, 2000);
+        showFeedback("HOME SET!", latStr + "\n" + lonStr, FEEDBACK_DURATION_LONG);
         lastInteractionTime = millis();
     }
 
@@ -790,7 +790,7 @@ void loop() {
     if (currentMode == MODE_RETURN && gps.location.isValid() && !breadcrumbs.empty()) {
         if (targetBreadcrumbIndex >= 0) {
             double distToTarget = gps.distanceBetween(gps.location.lat(), gps.location.lng(), breadcrumbs[targetBreadcrumbIndex].lat, breadcrumbs[targetBreadcrumbIndex].lon);
-            if (distToTarget < 20.0) {
+            if (distToTarget < BREADCRUMB_REACH_DIST) {
                 targetBreadcrumbIndex--;
                 triggerVibration();
             }
@@ -798,21 +798,21 @@ void loop() {
     }
 
     // 7. Vibration Logic
-    if (isVibrating && (millis() - vibrationStartTime > 500)) {
+    if (isVibrating && (millis() - vibrationStartTime > VIB_DURATION_LONG)) {
         digitalWrite(PIN_VIB_MOTOR, LOW);
         isVibrating = false;
     }
 
     // 8. Display Timeout
     if (isDisplayOn && (millis() - lastInteractionTime > DISPLAY_TIMEOUT)) {
-        u8g2.setPowerSave(1);
+        u8g2.setPowerSave(DISPLAY_POWER_SAVE_ON);
         isDisplayOn = false;
     }
 
     // 9. Update Display
     if (isDisplayOn) {
         static unsigned long lastUpdate = 0;
-        if (millis() - lastUpdate > 100) {
+        if (millis() - lastUpdate > DISPLAY_REFRESH_RATE) {
             lastUpdate = millis();
             u8g2.clearBuffer();
             int w = 0;
@@ -829,7 +829,7 @@ void loop() {
                 
                 static int chargeAnim = 0;
                 static unsigned long lastChargeAnim = 0;
-                if (millis() - lastChargeAnim > 500) {
+                if (millis() - lastChargeAnim > CHARGE_ANIM_INTERVAL) {
                     chargeAnim = (chargeAnim + 1) % 5;
                     lastChargeAnim = millis();
                 }
@@ -917,13 +917,13 @@ void loop() {
                 return;
             }
             
-            u8g2.drawHLine(0, 15, 128);
+            u8g2.drawHLine(0, STATUS_BAR_LINE_Y, SCREEN_WIDTH);
             u8g2.setFont(u8g2_font_5x7_tr);
 
             u8g2.drawFrame(0, 4, 6, 10);
             u8g2.drawBox(2, 2, 2, 2);
             int pct = getBatteryPercent();
-            int h = (pct * 8) / 100;
+            int h = (pct * BATTERY_BAR_HEIGHT) / 100;
             if (h > 0) u8g2.drawBox(1, 4 + (10-1-h), 4, h);
             u8g2.setCursor(8, 12);
             u8g2.print(pct); u8g2.print("%");
@@ -958,7 +958,7 @@ void loop() {
                 int barX = (SCREEN_WIDTH - barWidth) / 2; int barY = y + 15;
                 u8g2.drawFrame(barX, barY, barWidth, barHeight);
                 static int animPos = 0; static unsigned long lastAnim = 0;
-                if (millis() - lastAnim > 50) { animPos = (animPos + 2) % (barWidth - 3); lastAnim = millis(); }
+                if (millis() - lastAnim > GPS_SEARCH_ANIM_INTERVAL) { animPos = (animPos + 2) % (barWidth - 3); lastAnim = millis(); }
                 if (animPos > 0) u8g2.drawBox(barX + 2, barY + 2, animPos, barHeight - 4);
                 u8g2.sendBuffer();
                 return;
