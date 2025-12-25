@@ -14,32 +14,49 @@ Your tip motivates me to continue developing nerdy stuff for the DIY community. 
 
 ## Hardware Requirements
 
-- **Heltec Wireless Tracker (V1.1)**
-  - Integrated ESP32-S3, SX1262 LoRa, and UC6580 GNSS.
+- **Heltec Mesh Node T114 (nRF52840)**
+  - Ultra-low power nRF52840 MCU, SX1262 LoRa, and L76K GNSS.
+  - Replaces the older ESP32-S3 version for vastly improved battery life.
 - **1.5" OLED Display**
   - SH1107 Driver, 128x128 resolution, I2C interface.
 - **Bosch BNO055 9-Axis Absolute Orientation Sensor**
   - For precise compass heading.
 - **Peripherals (Optional)**
-  - Vibration Motor with driver circuit
-  - Flashlight and SOS-signal LED with driver circuit for high power LEDs
-  - External Button, waterproof
+  - Vibration Motor
+  - Flashlight LED
+  - External Button
 
-## Hardware Connections
-
-I've chosen a Heltec Wireless Tracker v1.1 integrates most components, simplifying the wiring significantly.
+## Hardware Connections (Heltec T114)
 
 ### I2C Bus (Shared: BNO055 Compass & SH1107 OLED)
-- **SDA**: GPIO 41
-- **SCL**: GPIO 42
-- **VCC**: 3.3V
+- **SDA**: Pin 16 (P0.16)
+- **SCL**: Pin 13 (P0.13)
+- **VCC**: 3.3V (Controlled by VEXT)
 - **GND**: GND
 
 ### Peripherals
-- **Button**: GPIO 6 (External)
-- **Vibration Motor**: GPIO 7
-- **Flashlight LED**: GPIO 5
-- **Status LED (NeoPixel)**: GPIO 18 (Internal WS2812)
+- **Button**: Pin 42 (P1.10) - Active Low
+- **Vibration Motor**: Pin 36 (P1.04)
+- **Flashlight LED**: Pin 38 (P1.06)
+- **Battery Voltage**: Pin 4 (P0.04 / AIN2)
+
+*(Note: The older ESP32-S3 pinout is still supported in code via `config.h` but deprecated)*
+
+## Power Management (New!)
+
+The device now features a **Deep Sleep (Soft-Off)** mode that consumes negligible power (< 50µA), allowing the battery to last for months/years in standby.
+
+- **Turn ON**: Hold Button for **3 Seconds** (Vibration feedback).
+- **Turn OFF**: Hold Button for **3 Seconds** (Vibration feedback -> Screen Off).
+- **Wake Up**: Single click wakes the device from sleep (if not fully powered down).
+
+### Estimated Battery Life (2000mAh LiPo)
+
+| Mode | Current Draw | Estimated Runtime |
+|------|--------------|-------------------|
+| **Active (Hiking)** | ~70 mA | ~28 Hours |
+| **Standby (Soft-Off)** | < 0.1 mA | > 1 Year |
+| **SOS Mode** | ~220 mA (Peak) | ~9 Hours |
 
 ## Features
 

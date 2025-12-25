@@ -19,6 +19,11 @@
 #include <Update.h>
 #endif
 
+#ifdef HELTEC_T114
+#include <nrf_gpio.h>
+#include <nrf_power.h>
+#endif
+
 #include <vector>
 #include <RadioLib.h>
 #include <Adafruit_NeoPixel.h>
@@ -167,6 +172,52 @@ void toggleSOS() {
 }
 
 // --- Helper Functions ---
+
+void powerOff() {
+    Serial.println("Entering Deep Sleep...");
+    
+    // 1. Feedback
+    #ifdef HELTEC_T114
+    digitalWrite(PIN_VIB_MOTOR, HIGH);
+    delay(200);
+    digitalWrite(PIN_VIB_MOTOR, LOW);
+    delay(200);
+    digitalWrite(PIN_VIB_MOTOR, HIGH);
+    delay(500);
+    digitalWrite(PIN_VIB_MOTOR, LOW);
+    #endif
+
+    // 2. Display OFF
+    u8g2.setPowerSave(1);
+    
+    // 3. Sensors OFF
+    #ifdef HELTEC_T114
+    digitalWrite(PIN_VEXT, LOW);
+    digitalWrite(PIN_FLASHLIGHT, LOW);
+    #endif
+
+    // 4. LoRa Sleep
+    radio.sleep();
+
+    // 5. Wait for button release (Important!)
+    while(digitalRead(PIN_BUTTON) == LOW) {
+        delay(10);
+    }
+
+    // 6. Configure Wakeup
+    #ifdef HELTEC_T114
+    // Configure Button pin for Wakeup (Sense LOW)
+    nrf_gpio_cfg_sense_input(PIN_BUTTON, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
+    
+    // Enter System OFF
+    NRF_POWER->SYSTEMOFF = 1;
+    while(1); // Wait for shutdown
+    #else
+    // ESP32 Deep Sleep
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_BUTTON, 0);
+    esp_deep_sleep_start();
+    #endif
+}
 
 int getBatteryPercent() {
     #ifdef HELTEC_T114
@@ -666,6 +717,48 @@ void saveCompassCalibration() {
 
 void setup() {
     #ifdef HELTEC_T114
+    // --- Wake-up Check (Soft-Off Logic) ---
+    // If we woke up from System OFF via Button, we need to check if it's a real "Turn On" request (3s hold).
+    // If not, we go back to sleep immediately.
+    
+    pinMode(PIN_BUTTON, INPUT_PULLUP);
+    
+    // Check if button is pressed at boot
+    if (digitalRead(PIN_BUTTON) == LOW) {
+        // Wait and check for 3s hold
+        unsigned long start = millis();
+        bool turnOn = false;
+        
+        // Feedback: Short blip to indicate "I'm listening"
+        pinMode(PIN_VIB_MOTOR, OUTPUT);
+        digitalWrite(PIN_VIB_MOTOR, HIGH);
+        delay(50);
+        digitalWrite(PIN_VIB_MOTOR, LOW);
+
+        while (digitalRead(PIN_BUTTON) == LOW) {
+            if (millis() - start > 3000) {
+                turnOn = true;
+                break;
+            }
+            delay(10);
+        }
+        
+        if (!turnOn) {
+            // Button released too early -> Go back to sleep
+            powerOff(); 
+        } else {
+            // Success! Feedback
+            digitalWrite(PIN_VIB_MOTOR, HIGH);
+            delay(200);
+            digitalWrite(PIN_VIB_MOTOR, LOW);
+        }
+    } else {
+        // Powered on by battery insertion or reset -> Go to sleep?
+        // Usually we want to start if battery is inserted. 
+        // But if we want strict Soft-Off, we might want to sleep.
+        // For now, let's allow boot on battery insert.
+    }
+
     // Power on VExt for sensors (GPS, LoRa, OLED)
     pinMode(PIN_VEXT, OUTPUT);
     digitalWrite(PIN_VEXT, HIGH);
@@ -1006,6 +1099,15 @@ void loop() {
     if (currentButtonState == LOW) {
         unsigned long pressDuration = millis() - buttonPressStartTime;
         
+        // 3s: Power Off (Soft-Off)
+        if (!isLongPressHandled && pressDuration > 3000) {
+             if (currentMode == MODE_EXPLORE || currentMode == MODE_BRING_HOME) {
+                 // Only allow power off if not in special modes (like SOS countdown, though that's handled elsewhere)
+                 isLongPressHandled = true;
+                 powerOff();
+             }
+        }
+
         // 10s: Reset Home (Extra Long Press)
         if (!isLongPressHandled && pressDuration > 10000) {
             if (currentMode == MODE_EXPLORE && gps.location.isValid()) {
