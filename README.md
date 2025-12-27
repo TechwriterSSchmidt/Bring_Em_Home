@@ -8,7 +8,7 @@ This device uses GPS and compass sensors to help navigate back to a saved "home"
 
 ## Support my projects
 
-Your tip motivates me to continue developing nerdy stuff for the DIY community. Thank you very much for your support!
+Your tip motivates me to continue developing cool stuff for the DIY community. Thank you very much for your support!
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D01HVT9A)
 
