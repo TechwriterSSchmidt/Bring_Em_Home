@@ -15,8 +15,9 @@ Your tip motivates me to continue developing nerdy stuff for the DIY community. 
 ## Hardware Requirements
 
 - **Heltec Mesh Node T114 (nRF52840)**
-  - Ultra-low power nRF52840 MCU, SX1262 LoRa, and L76K GNSS.
-  - Replaces the older ESP32-S3 version for vastly improved battery life.
+  - Ultra-low power nRF52840 MCU, SX1262 LoRa.
+- **Matek SAM-M10Q GNSS**
+  - High-precision Multi-Constellation GPS (M10 Chip).
 - **1.5" OLED Display**
   - SH1107 Driver, 128x128 resolution, I2C interface.
 - **Bosch BNO055 9-Axis Absolute Orientation Sensor**
