@@ -89,11 +89,11 @@
 #define NEOPIXEL_INDEX      0       // Index of the single NeoPixel
 
 // LoRa Configuration
-#define LORA_BW             125.0   // Bandwidth (kHz)
-#define LORA_SF             9       // Spreading Factor
-#define LORA_CR             7       // Coding Rate (4/7)
+#define LORA_BW             125.0   // Bandwidth (kHz) - Keep 125 for stability
+#define LORA_SF             12      // Spreading Factor (12 = Max Range, Slowest)
+#define LORA_CR             8       // Coding Rate (4/8 = Max Error Correction)
 #define LORA_SYNC_WORD      0x12    // Sync Word (Private Network)
-#define LORA_POWER          10      // Output Power (dBm)
+#define LORA_POWER          22      // Output Power (dBm) - Max for SX1262
 #define LORA_PREAMBLE       8       // Preamble Length
 #define LORA_GAIN           0       // Gain (0 = Auto)
 
