@@ -10,14 +10,13 @@ This device uses GPS and compass sensors to help navigate back to a saved "home"
 - [Quick Start Guide](Docs/QUICK_REFERENCE.md)
 - [Release Notes](RELEASE_NOTES.md)
 - [Hardware Requirements](#hardware-requirements)
-
 - [Hardware Connections (Heltec T114)](#hardware-connections-heltec-t114)
 - [Power Management (New!)](#power-management-new)
 - [Performance & Stability](#performance--stability)
 - [Features](#features)
 - [Configuration](#configuration)
 - [User Interface](#user-interface)
-- [Power & Battery Life](#-power--battery-life)
+- [Power & Battery Life](#power--battery-life)
 
 ## Hardware Requirements
 
@@ -78,13 +77,13 @@ The device now features a **Deep Sleep** mode that consumes negligible power (< 
 
 | Mode | Current Draw | Estimated Runtime |
 |------|--------------|-------------------|
-| **Hiking (Display Auto-Off)** | ~30 mA | ~50 Hours |
-| **Hiking (Display Always On)** | ~50 mA | ~30 Hours |
-| **Buddy Mode (Smart Sync)** | ~32 mA | ~46 Hours |
-| **SOS Mode (High Power)** | ~220 mA (Peak) | ~7 Hours |
+| **Hiking (Display Auto-Off)** | ~20 mA | ~75 Hours |
+| **Hiking (Display Always On)** | ~40 mA | ~38 Hours |
+| **Buddy Mode (Smart Sync)** | ~18 mA | ~80 Hours |
+| **SOS Mode (High Power)** | ~220 mA (Peak) | ~8 Hours |
 | **Deep Sleep** | < 0.05 mA | > 1 Year |
 
-*Note: "Smart Sync" significantly reduces power consumption in Buddy Mode by synchronizing LoRa receive windows with GPS time.*
+*Note: The new u-blox M10 GPS reduces power consumption by ~40% compared to legacy modules.*
 
 ## Performance & Stability
 
