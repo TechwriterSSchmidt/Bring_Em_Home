@@ -14,7 +14,7 @@ Your tip motivates me to continue developing cool stuff for the DIY community. T
 
 ## Table of Contents
 - [Quick Start Guide](Docs/QUICK_REFERENCE.md) 🚀
-- [Release Notes](RELEASE_NOTES.md) 📝
+- [Release Notes](RELEASE_NOTES.md)
 - [Hardware Requirements](#hardware-requirements)
 - [Hardware Connections (Heltec T114)](#hardware-connections-heltec-t114)
 - [Power Management (New!)](#power-management-new)
