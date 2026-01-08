@@ -124,6 +124,21 @@ enum AppMode {
     MODE_RETURN,
     MODE_CONFIRM_HOME
 };
+
+// --- MENU DEFINITONS ---
+enum MenuState {
+  MENU_NONE,
+  MENU_MODE_SWITCH, // Explore <-> Return
+  MENU_LIGHT,       // Taschenlampe
+  MENU_SOS,         // SOS Starten
+  MENU_POWER_OFF    // Ausschalten
+};
+
+MenuState currentMenuSelection = MENU_NONE;
+unsigned long lastMenuInteraction = 0;
+const unsigned long MENU_TIMEOUT = 4000; // Menü schließt automatisch nach 4s
+const unsigned long LONG_PRESS_THRESHOLD = 800; // ms für Bestätigung
+const unsigned long SOS_CONFIRM_TIME = 10000; // 10 Sekunden halten für SOS aus Menü
 AppMode currentMode = MODE_CONFIRM_HOME; // Start in Confirm Mode (Wait for GPS)
 
 // Navigation Data
@@ -370,6 +385,53 @@ void updateStatusLED() {
         pixels.clear();
         pixels.show();
     }
+}
+
+// --- Hilfsfunktion für Menü-Icons ---
+void drawMenuOverlay() {
+  if (currentMenuSelection == MENU_NONE) return;
+
+  // Schwarze Box am unteren Rand zeichnen
+  u8g2.setDrawColor(0);
+  u8g2.drawBox(0, SCREEN_HEIGHT - 30, SCREEN_WIDTH, 30);
+  u8g2.setDrawColor(1);
+  u8g2.drawFrame(0, SCREEN_HEIGHT - 30, SCREEN_WIDTH, 30);
+
+  u8g2.setFont(u8g2_font_helvB08_tf);
+  u8g2.setCursor(5, SCREEN_HEIGHT - 10);
+
+  switch (currentMenuSelection) {
+    case MENU_MODE_SWITCH:
+      u8g2.print("OPTION: SWITCH MODE");
+      u8g2.setCursor(90, SCREEN_HEIGHT - 10);
+      u8g2.print("[Hold]");
+      break;
+    case MENU_LIGHT:
+      u8g2.print("OPTION: LIGHT");
+      u8g2.print(isFlashlightOn ? " OFF" : " ON");
+      u8g2.setCursor(90, SCREEN_HEIGHT - 10);
+      u8g2.print("[Hold]");
+      break;
+    case MENU_SOS:
+      u8g2.print("OPTION: SEND SOS");
+      u8g2.setCursor(80, SCREEN_HEIGHT - 10);
+      if (digitalRead(PIN_BUTTON) == LOW && currentMenuSelection == MENU_SOS) {
+           unsigned long pressedFor = millis() - buttonPressStartTime;
+           int remain = 10 - (pressedFor / 1000);
+           if (remain < 0) remain = 0;
+           u8g2.print("HOLD: " + String(remain));
+      } else {
+           u8g2.print("[Hold 10s]");
+      }
+      break;
+    case MENU_POWER_OFF:
+      u8g2.print("OPTION: POWER OFF");
+      u8g2.setCursor(90, SCREEN_HEIGHT - 10);
+      u8g2.print("[Hold]");
+      break;
+    default:
+      break;
+  }
 }
 
 void updateSOS() {
@@ -954,43 +1016,119 @@ void loop() {
 
     // 3. Button Logic
     bool currentButtonState = digitalRead(PIN_BUTTON);
-    
+    unsigned long now = millis();
+
+    // Button Pressed (Falling Edge)
     if (currentButtonState == LOW && lastButtonState == HIGH) {
-        buttonPressStartTime = millis();
+        buttonPressStartTime = now;
         isLongPressHandled = false;
     }
-    
+
+    // While Button Held
     if (currentButtonState == LOW) {
-        unsigned long pressDuration = millis() - buttonPressStartTime;
-        
-        // Panic Button (3s) -> Return Mode
-        if (!isLongPressHandled && pressDuration > 3000 && pressDuration < 6000) {
+        unsigned long duration = now - buttonPressStartTime;
+
+        // PANIC SHORTCUT (Hold 3s, no menu active)
+        if (!isLongPressHandled && currentMenuSelection == MENU_NONE && duration > 3000) {
+             isLongPressHandled = true;
+             // Force Panic / Return Mode
              if (currentMode == MODE_EXPLORE) {
-                 isLongPressHandled = true;
                  currentMode = MODE_RETURN;
+                 // Haptic Feedback
+                 triggerVibration(); delay(100); triggerVibration(); delay(100); triggerVibration();
                  showFeedback("RETURN MODE", "PANIC ACTIVATED", FEEDBACK_DURATION_LONG);
-                 triggerVibration(); delay(100); triggerVibration();
                  if (!isDisplayOn) { u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF); isDisplayOn = true; }
+                 lastInteractionTime = now;
              }
         }
-
-        // Power Off (6s)
-        if (!isLongPressHandled && pressDuration > 6000) {
-             isLongPressHandled = true;
-             powerOff();
+        
+        // SOS COUNTDOWN (Hold 10s if Menu=SOS)
+        if (currentMenuSelection == MENU_SOS && duration > SOS_CONFIRM_TIME) {
+             if (!isSOSActive && !isLongPressHandled) { // Trigger once
+                 isLongPressHandled = true;
+                 if (!isSOSActive) toggleSOS();
+                 currentMenuSelection = MENU_NONE;
+                 triggerVibration(); delay(500); triggerVibration();
+             }
         }
     }
-    
+
+    // Button Released (Rising Edge)
     if (currentButtonState == HIGH && lastButtonState == LOW) {
-        if (!isLongPressHandled && (millis() - buttonPressStartTime < 2000)) {
-            clickCount++;
-            lastClickTime = millis();
+        unsigned long duration = now - buttonPressStartTime;
+        lastInteractionTime = now; // Reset display timeout
+        
+        if (!isDisplayOn) {
+            // Wake Up only
+            u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF);
+            isDisplayOn = true;
+            isLongPressHandled = true; // Don't process click
+        } else {
+             // Display is ON
+             if (!isLongPressHandled) {
+                 if (duration < LONG_PRESS_THRESHOLD) {
+                     // SHORT CLICK
+                     if (currentMode == MODE_CONFIRM_HOME) {
+                         clickCount++;
+                         lastClickTime = now;
+                     } else {
+                         // NORMAL OPERATION -> SINGLE BUTTON MENU navigation
+                         if (currentMenuSelection == MENU_NONE) {
+                             currentMenuSelection = MENU_MODE_SWITCH;
+                         } else {
+                             // Cycle (MODE -> LIGHT -> OFF -> SOS)
+                             switch(currentMenuSelection) {
+                                 case MENU_MODE_SWITCH: currentMenuSelection = MENU_LIGHT; break;
+                                 case MENU_LIGHT: currentMenuSelection = MENU_POWER_OFF; break;
+                                 case MENU_POWER_OFF: currentMenuSelection = MENU_SOS; break;
+                                 case MENU_SOS: currentMenuSelection = MENU_NONE; break;
+                                 default: currentMenuSelection = MENU_NONE;
+                             }
+                         }
+                         lastMenuInteraction = now;
+                     }
+                 } else {
+                     // LONG CLICK (Action confirmation)
+                     if (currentMenuSelection != MENU_NONE) {
+                         switch(currentMenuSelection) {
+                             case MENU_MODE_SWITCH:
+                                if (currentMode == MODE_EXPLORE) {
+                                    currentMode = MODE_RETURN;
+                                    showFeedback("RETURN MODE", "", 2000);
+                                    if (!breadcrumbs.empty() && gps.location.isValid()) {
+                                        targetBreadcrumbIndex = breadcrumbs.size() - 1; 
+                                    }
+                                } else {
+                                    currentMode = MODE_EXPLORE;
+                                    showFeedback("EXPLORE MODE", "", 2000);
+                                }
+                                triggerVibration();
+                                currentMenuSelection = MENU_NONE;
+                                break;
+                             case MENU_LIGHT:
+                                toggleFlashlight();
+                                triggerVibration();
+                                currentMenuSelection = MENU_NONE;
+                                break;
+                             case MENU_SOS:
+                                // Warn user
+                                showFeedback("HOLD TO ACTIVATE", "10 SECONDS", 2000);
+                                triggerVibration();
+                                break;
+                             case MENU_POWER_OFF:
+                                powerOff();
+                                break;
+                             default: break;
+                         }
+                     }
+                 }
+             }
         }
     }
     lastButtonState = currentButtonState;
 
-    if (clickCount > 0 && (millis() - lastClickTime > CLICK_DELAY)) {
-        if (currentMode == MODE_CONFIRM_HOME) {
+    // Legacy "Confirm Home" logic
+    if (currentMode == MODE_CONFIRM_HOME && clickCount > 0 && (millis() - lastClickTime > 1000)) {
             if (clickCount == 1) {
                 // YES: Set Home Here
                 homeLat = gps.location.lat();
@@ -999,7 +1137,7 @@ void loop() {
                 saveHomePosition(homeLat, homeLon);
                 currentMode = MODE_EXPLORE;
                 showFeedback("HOME SET!", "Saved to Flash", FEEDBACK_DURATION_LONG);
-            } else if (clickCount == 2) {
+            } else if (clickCount >= 2) {
                 // NO: Use Saved Home
                 if (hasSavedHome) {
                     homeLat = savedHomeLat;
@@ -1012,52 +1150,11 @@ void loop() {
                 }
             }
             clickCount = 0;
-        } else {
-            if (isSOSCountdown) {
-                isSOSCountdown = false;
-                showFeedback("SOS CANCELLED", "", FEEDBACK_DURATION_LONG);
-                clickCount = 0;
-                lastInteractionTime = millis();
-            } else if (clickCount == 1) {
-                if (isDisplayOn) {
-                    u8g2.setPowerSave(DISPLAY_POWER_SAVE_ON);
-                    isDisplayOn = false;
-                } else {
-                    u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF);
-                    isDisplayOn = true;
-                    lastInteractionTime = millis();
-                }
-            } else if (clickCount == 2) {
-                if (currentMode == MODE_EXPLORE) {
-                    currentMode = MODE_RETURN;
-                    if (!breadcrumbs.empty() && gps.location.isValid()) {
-                        double minDst = 99999999;
-                        int minIdx = -1;
-                        for(size_t i=0; i<breadcrumbs.size(); i++) {
-                            double d = gps.distanceBetween(gps.location.lat(), gps.location.lng(), breadcrumbs[i].lat, breadcrumbs[i].lon);
-                            if (d < minDst) { minDst = d; minIdx = i; }
-                        }
-                        targetBreadcrumbIndex = minIdx;
-                    } else {
-                        targetBreadcrumbIndex = -1;
-                    }
-                    showFeedback("RETURN MODE", "", FEEDBACK_DURATION_SHORT);
-                } else {
-                    currentMode = MODE_EXPLORE;
-                    showFeedback("EXPLORE MODE", "", FEEDBACK_DURATION_SHORT);
-                }
-                lastInteractionTime = millis();
-            } else if (clickCount == 3) {
-                toggleFlashlight();
-                triggerVibration();
-            } else if (clickCount >= 5) {
-                isSOSCountdown = true;
-                sosCountdownStartTime = millis();
-                if (!isDisplayOn) { u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF); isDisplayOn = true; }
-                triggerVibration();
-            }
-            clickCount = 0;
-        }
+    }
+    
+    // Menu Timeout
+    if (currentMenuSelection != MENU_NONE && (millis() - lastMenuInteraction > MENU_TIMEOUT)) {
+        currentMenuSelection = MENU_NONE;
     }
 
     if (isSOSCountdown) {
@@ -1452,6 +1549,7 @@ void loop() {
                     u8g2.drawStr(25, 110, "WAITING GPS");
                  }
             }
+            drawMenuOverlay();
             u8g2.sendBuffer();
         }
     }

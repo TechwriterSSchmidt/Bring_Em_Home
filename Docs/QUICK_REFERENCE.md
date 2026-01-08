@@ -18,7 +18,8 @@
 - **Action**: Enjoy your hike!
 
 ### 2. Return Mode (Backtrack)
-- **Activate**: Double-Click Button.
+- **Activate**: Menu (1 Click) -> Select 'SWITCH MODE' (Hold).
+- **OR**: Panic Button (Hold 3s) for emergency return.
 - **Display**: Shows Arrow pointing to the next Breadcrumb (or Home).
 - **Function**: Guides you back along your exact path.
 - **Feedback**: Vibration when reaching a waypoint.
@@ -35,17 +36,17 @@
 | **Bat %** | Battery Level. |
 | **C:Good** | Compass Calibration Status. |
 
-## 🔘 Button Functions
+## 🔘 Button Functions (Single Button Menu)
 
 | Action | Gesture | Function |
 |--------|---------|----------|
-| **Toggle Display** | 1 Click | Screen ON/OFF (Saves Power) |
-| **Switch Mode** | 2 Clicks | Explore ↔ Return Mode |
-| **Flashlight** | 3 Clicks | Toggle LED Light |
-| **SOS Mode** | 5 Clicks | Start SOS Countdown (LoRa Beacon) |
-| **Panic Mode** | Hold 3-6s | **IMMEDIATE** Return Mode (Safety) |
-| **Power OFF** | Hold >6s | Deep Sleep (Vibration: Long-Short-Short) |
-| **Confirm Home** | 1/2 Clicks | 1x=New Home, 2x=Load Saved (At Boot) |
+| **Wake Display** | 1 Click | Turn Screen ON |
+| **Open Menu** | 1 Click (When ON) | Open Options Menu (Bottom of Screen) |
+| **Navigate Menu** | 1 Click | Cycle options: Mode -> Light -> Power Off -> SOS |
+| **Select Option** | Hold Button | Execute selected menu option |
+| **Panic Mode** | Hold 3s (No Menu) | **IMMEDIATE** Return Mode (Safety Override) |
+| **SOS** | Menu -> SOS -> Hold 10s | Start SOS Beacon (Requires explicit hold) |
+| **Confirm Home** | 1x / 2x Clicks | Only at Startup: 1x=New Home, 2x=Load Saved |
 
 ## ⚡ Charging & Battery
 
@@ -57,6 +58,6 @@
 
 - **MCU**: nRF52840 (Heltec T114)
 - **LoRa**: SX1262 (868 MHz)
-- **GPS**: L76K GNSS
+- **GPS**: Heltec L76K GNSS Module
 - **Compass**: BNO055 (I2C 0x28)
 - **Display**: SH1107 (I2C 0x3C)

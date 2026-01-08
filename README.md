@@ -16,8 +16,8 @@ Your tip motivates me to continue developing cool stuff for the DIY community. T
 
 - **Heltec Mesh Node T114 (nRF52840)**
   - Ultra-low power nRF52840 MCU, SX1262 LoRa.
-- **Matek SAM-M10Q GNSS**
-  - High-precision Multi-Constellation GPS (M10 Chip).
+- **Heltec L76K GNSS Module**
+  - High-precision Multi-Constellation GPS.
 - **1.5" OLED Display**
   - SH1107 Driver, 128x128 resolution, I2C interface.
 - **Bosch BNO055 or BNO085 IMU**
