@@ -1,5 +1,13 @@
 # Release Notes - Bring Em Home
 
+## [1.0.2] - 2026-01-08
+### Changed
+- **Hardware Configuration**: Split I2C bus to facilitate assembly.
+    - **Bus 1 (Internal)**: OLED Display (Default Pins 16/13).
+    - **Bus 2 (External)**: Compass Sensor (BNO085) moved to Header P2 (Pins 28/8).
+- **GPS Pin Mapping**: Corrected GPS pin definitions based on T114 V2 schematic analysis (RX=37, TX=39, RST=38, WAKE=34).
+- **Peripherals**: Temporarily disabled Vibration Motor and Flashlight due to pin conflicts with GPS.
+
 ## [1.0.1] - 2026-01-08
 ### Fixed
 - **LoRa Init Failure**: Corrected `PIN_LORA_RST` from 25 to 18 to match Heltec Mesh Node T114 V2 hardware/firmware definitions.
@@ -15,23 +23,23 @@ This major update focuses on "Safety-First" features designed to prevent user er
 
 ### New Features
 
-#### 🛡️ Safety-First Home Logic
+#### Safety-First Home Logic
 - **Problem Solved:** Prevents the device from accidentally overwriting a saved home location (e.g., the car) if the device is turned on mid-hike.
 - **Mechanism:** Upon acquiring a GPS fix, the device enters `CONFIRM_HOME` mode.
     - **1 Click:** Set NEW Home (Current Location).
     - **2 Clicks:** Load SAVED Home (From Flash Memory).
 - **Persistence:** The home location is now saved to the internal file system and persists across reboots.
 
-#### 🚨 Panic Button
+#### Panic Button
 - **Action:** Holding the button for **3-6 seconds** immediately activates **Return Mode**.
 - **Behavior:** Bypasses all menus and guides the user back to the nearest breadcrumb or home.
 - **Feedback:** Distinct vibration pattern and "RETURN MODE" message.
 
-#### 🧭 Compass Calibration Warning
+#### Compass Calibration Warning
 - **Indicator:** Displays "CAL!" on the screen if the BNO085 reports low calibration status.
 - **Benefit:** Ensures the user knows when the compass might be inaccurate.
 
-#### 💾 Internal File System
+#### Internal File System
 - Integrated `Adafruit_LittleFS` to store configuration and state (Home Location) reliably.
 
 ### Changes

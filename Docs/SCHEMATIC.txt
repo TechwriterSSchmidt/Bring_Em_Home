@@ -1,60 +1,64 @@
 Bring Em Home - Connection Schematic
 =====================================
-Hardware Platform: Heltec Mesh Node T114 (nRF52840)
+Hardware Platform: Heltec Mesh Node T114 V2 (nRF52840)
 Core: nRF52840 + SX1262 LoRa
 
 External Components:
-- 1.5" OLED Display (SH1107 Driver, 128x128, I2C)
-- Bosch BNO055 or BNO085 9-Axis Absolute Orientation Sensor (I2C)
+- 1.5" OLED Display (SH1107 Driver, 128x128, I2C Bus 1)
+- Bosch BNO085 or BNO055 9-Axis Absolute Orientation Sensor (I2C Bus 2)
 - Matek SAM-M10Q GNSS (UART)
-- Vibration Motor, High Power LED, External Button
+- Vibration Motor (Disabled), High Power LED (Disabled), External Button
 
 Connection Diagram:
 ==================
 
                                     ┌─────────────────────────────┐
-                                    │  Heltec Mesh Node T114      │
+                                    │  Heltec Mesh Node T114 V2   │
                                     │                             │
-         ┌──────────────────────────┤ P0.16 (I2C SDA)             │
-         │              ┌───────────┤ P0.13 (I2C SCL)             │
-         │              │           │                             │
-         │              │           │ 3.3V Power (VEXT)           ├──┐
-         │              │           │ GND                         ├──┤
-         │              │           │                             │  │
-         │              │           │ Internal Devices:           │  │
-         │              │           │  - GPS (RX:P1.07, TX:P1.05) │  │
-         │              │           │  - LoRa (SPI Internal)      │  │
-         │              │           │                             │  │
-         │              │           │ Peripherals:                │  │
-         │              │           │  - Button: P1.10 (Pin 42)   │  │
-         │              │           │  - Vibration: P1.04 (Pin 36)│  │
-         │              │           │  - Flashlight: P1.06 (Pin 38│  │
-         │              │           │  - WS2812 LED: P1.08 (Pin 40│  │
-         │              │           │  - VEXT Power: P0.21 (Pin 21│  │
-         │              │           │  - Battery ADC: P0.04 (Pin 4│  │
-         │              │           │  - Bat Ctrl: P0.06 (Pin 6)  │  │
-         │              │           └─────────────────────────────┘  │
-         │              │                                            │
-         ▼              ▼                                            ▼
-    ┌─────────────────────────┐          ┌──────────────────────────────┐
-    │  1.5" OLED (SH1107)     │          │  Bosch BNO055 Compass        │
-    │                         │          │                              │
-    │   SDA ◄─────────────────┼──────────► SDA                          │
-    │   SCL ◄─────────────────┼──────────► SCL                          │
-    │   VCC ◄─────────────────┼──────────► VCC                          │
-    │   GND ◄─────────────────┴──────────► GND                          │
-    └─────────────────────────┘          └──────────────────────────────┘
+    ┌───────────────────────────┐   │ BUS 1 (Internal)            │
+    │  1.5" OLED (SH1107)       │◄──┤ P0.16 (I2C SDA)             │
+    │  (I2C Address 0x3C)       │◄──┤ P0.13 (I2C SCL)             │
+    └───────────────────────────┘   │                             │
+                                    │                             │
+    ┌───────────────────────────┐   │ BUS 2 (External - Header P2)│
+    │  Bosch BNO085 Compass     │◄──┤ P0.28 (I2C SDA)             │
+    │  (I2C Address 0x4A)       │◄──┤ P0.08 (I2C SCL)             │
+    │  VCC -> VEXT / 3.3V       │◄──┤ P0.21 (VEXT Power Control)  │
+    └───────────────────────────┘   │                             │
+                                    │                             │
+                                    │ GPS Module (UART):          │
+                                    │  - RX: P1.05 (Pin 37)       │
+                                    │  - TX: P1.07 (Pin 39)       │
+                                    │  - RST: P1.06 (Pin 38)      │
+                                    │  - WAKE: P1.02 (Pin 34)     │
+                                    │  - PPS: P1.04 (Pin 36)      │
+                                    │                             │
+                                    │ Peripherals:                │
+                                    │  - Button: P1.10 (Pin 42)   │
+                                    │  - WS2812 LED: P1.08 (Pin 40│
+                                    │  - Battery ADC: P0.04 (Pin 4│
+                                    │  - Bat Ctrl: P0.06 (Pin 6)  │
+                                    │                             │
+                                    │ Disabled (Conflict w/ GPS): │
+                                    │  - Vibration Motor          │
+                                    │  - Flashlight LED           │
+                                    └─────────────────────────────┘
 
 GPIO Pin Summary (Arduino Pin Numbers):
 =======================================
 Pin Name     | Arduino Pin | nRF Pin | Function
 -------------|-------------|---------|------------------------
 PIN_BUTTON   | 42          | P1.10   | External Button (Active Low)
-PIN_VIB      | 36          | P1.04   | Vibration Motor
-PIN_LED      | 38          | P1.06   | Flashlight LED
 PIN_NEOPIXEL | 40          | P1.08   | External WS2812 LED Data
 PIN_VEXT     | 21          | P0.21   | Sensor Power Control
 PIN_BAT_ADC  | 4           | P0.04   | Battery Voltage ADC
 PIN_BAT_CTRL | 6           | P0.06   | Battery Divider Control (Active HIGH)
-PIN_SDA      | 16          | P0.16   | I2C Data
-PIN_SCL      | 13          | P0.13   | I2C Clock
+PIN_I2C_SDA  | 16          | P0.16   | I2C Bus 1 Data (OLED)
+PIN_I2C_SCL  | 13          | P0.13   | I2C Bus 1 Clock (OLED)
+PIN_EXT_SDA  | 28          | P0.28   | I2C Bus 2 Data (Sensors)
+PIN_EXT_SCL  | 8           | P0.08   | I2C Bus 2 Clock (Sensors)
+PIN_GPS_RX   | 37          | P1.05   | GPS UART RX
+PIN_GPS_TX   | 39          | P1.07   | GPS UART TX
+PIN_GPS_RST  | 38          | P1.06   | GPS Reset
+PIN_GPS_WAKE | 34          | P1.02   | GPS Wakeup
+PIN_GPS_PPS  | 36          | P1.04   | GPS PPS

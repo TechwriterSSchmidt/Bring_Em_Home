@@ -743,8 +743,8 @@ void setup() {
     pinMode(PIN_BAT_READ_CTRL, OUTPUT);
     digitalWrite(PIN_BAT_READ_CTRL, LOW);
 
-    // CRITICAL FIX: Sensors need time to boot after VEXT HIGH
-    delay(500); 
+    // CRITICAL: Sensors need time to boot after VEXT HIGH
+    delay(500);  
 
     Serial.begin(SERIAL_BAUD);
 
@@ -811,16 +811,14 @@ void setup() {
     // Initialize IMU (BNO085 or BNO055)
     #if USE_BNO085
     if (!bno08x.begin_I2C(BNO085_ADDRESS, &Wire1)) {
-        Serial.println("No BNO085 detected!");
+        Serial.println("No BNO085 detected on External I2C!");
         hasCompass = false;
     } else {
         Serial.println("BNO085 Found!");
         hasCompass = true;
         for (int n = 0; n < bno08x.prodIds.numEntries; n++) {
-            Serial.print("Part "); Serial.print(bno08x.prodIds.entry[n].swPartNumber);
-            Serial.print(": Version "); Serial.print(bno08x.prodIds.entry[n].swVersionMajor);
-            Serial.print("."); Serial.print(bno08x.prodIds.entry[n].swVersionMinor);
-            Serial.print("."); Serial.println(bno08x.prodIds.entry[n].swVersionPatch);
+            // Optional: Print Part/Version info if needed
+            // Serial.print("Part "); ...
         }
         // Enable Rotation Vector (Heading)
         if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV, 50000)) { // 50ms interval
@@ -835,14 +833,12 @@ void setup() {
             bnoFound = true;
             break;
         }
-        Serial.println("BNO055 Retry...");
         delay(200);
     }
     
     if (!bnoFound) {
         Serial.println("No BNO055 detected!");
         hasCompass = false;
-        // fatalError("BNO055 Error!"); // Optional: Don't crash if compass fails, just run without
     } else {
         hasCompass = true;
         bno.setExtCrystalUse(true);

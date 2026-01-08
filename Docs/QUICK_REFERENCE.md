@@ -69,8 +69,9 @@ To use the Buddy Tracker, each device must have a unique ID (1-5).
 
 ## 📊 Technical Info
 
-- **MCU**: nRF52840 (Heltec T114)
+- **MCU**: nRF52840 (Heltec Mesh Node T114 V2)
 - **LoRa**: SX1262 (868 MHz)
-- **GPS**: Heltec L76K GNSS Module
-- **Compass**: BNO055 (I2C 0x28)
-- **Display**: SH1107 (I2C 0x3C)
+- **GPS**: Matek SAM-M10Q (u-blox M10)
+- **Compass**: BNO085 (I2C 0x4A - Ext. Bus) or BNO055
+- **Display**: SH1107 (I2C 0x3C - Int. Bus)
+- **Battery**: 1500mAh LiPo

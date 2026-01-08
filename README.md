@@ -1,4 +1,4 @@
-# Bring Em Home 🧭
+# Bring Em Home
 
 A dedicated GPS navigation device designed to guide Emilie safely back to her starting location on every hike using GPS-breadcrumbs. It also serves as an emergency LoRa-beacon and SOS-flasher in case she needs help.
 
@@ -6,16 +6,11 @@ A dedicated GPS navigation device designed to guide Emilie safely back to her st
 
 This device uses GPS and compass sensors to help navigate back to a saved "home" position. Perfect for hikers who want peace of mind knowing they can always find their way back to their starting point.
 
-## Support my projects
-
-Your tip motivates me to continue developing cool stuff for the DIY community. Thank you very much for your support!
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D01HVT9A)
-
 ## Table of Contents
-- [Quick Start Guide](Docs/QUICK_REFERENCE.md) 🚀
+- [Quick Start Guide](Docs/QUICK_REFERENCE.md)
 - [Release Notes](RELEASE_NOTES.md)
 - [Hardware Requirements](#hardware-requirements)
+
 - [Hardware Connections (Heltec T114)](#hardware-connections-heltec-t114)
 - [Power Management (New!)](#power-management-new)
 - [Performance & Stability](#performance--stability)
@@ -69,7 +64,7 @@ Your tip motivates me to continue developing cool stuff for the DIY community. T
 
 ## Power Management (New!)
 
-The device now features a **Deep Sleep** mode that consumes negligible power (< 50µA), allowing the battery to last for months/years in standby.
+The device now features a **Deep Sleep** mode that consumes negligible power (< 50uA), allowing the battery to last for months/years in standby.
 
 - **Turn ON**: Hold Button for **3 Seconds** (Rising Vibration: Short-Short-Long).
 - **Panic Mode**: Hold Button for **3-6 Seconds** (Triggers Return Mode immediately).
@@ -207,7 +202,7 @@ Activated by holding the button for **5 seconds** while powering on.
 
 ![OTA Screen](Screens/mockup_ota.png)
 
-## 🔋 Power & Battery Life
+## Power & Battery Life
 
 The device is optimized for long hikes using the ultra-low power **nRF52840** MCU and the efficient **Matek M10Q** GPS.
 
