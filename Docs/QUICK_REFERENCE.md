@@ -47,6 +47,19 @@
 | **Panic Mode** | Hold 3s (No Menu) | **IMMEDIATE** Return Mode (Safety Override) |
 | **SOS** | Menu -> SOS -> Hold 10s | Start SOS Beacon (Requires explicit hold) |
 | **Confirm Home** | 1x / 2x Clicks | Only at Startup: 1x=New Home, 2x=Load Saved |
+| **Setup Mode** | Hold 15s | Enter Device ID Selection (Set ID 1-5) |
+
+## ⚙️ Device Setup (Buddy Mode)
+
+To use the Buddy Tracker, each device must have a unique ID (1-5).
+
+1. **Enter Setup**: With the device ON, hold the button for **15 seconds** until "SETUP DEVICE ID" appears.
+   - *Tip: Ignore the "Panic Mode" vibration at 3s, keep holding.*
+2. **Change ID**: Short click to cycle numbers (1, 2, 3, 4, 5).
+3. **Save**: Long press to save the ID and return to Explore Mode.
+
+*Note: The device will remember your ID even after power off.*
+
 
 ## ⚡ Charging & Battery
 
