@@ -1,6 +1,6 @@
 # Bring Em Home 🏠
 
-A dedicated GPS navigation device designed to guide Emilie safely back to her starting location on every hike using GPS-breadcrumbs. It also serves as an emergency LoRa-beacon and SOS-flasher in case she needs help.
+A dedicated GPS navigation device designed to guide Emilie safely back to her starting location on every hike using GPS-breadcrumbs. It also serves as a LoRa-based buddy finder and SOS-flasher in case she needs help.
 
 ## Overview
 
