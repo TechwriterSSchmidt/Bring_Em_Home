@@ -21,15 +21,16 @@ This device uses GPS and compass sensors to help navigate back to a saved "home"
 
 ## Hardware Requirements
 
-- **Heltec Mesh Node T114 (nRF52840)**
+- **Heltec Mesh Node T114 (nRF52840 (V2))**
   - Ultra-low power nRF52840 MCU, SX1262 LoRa.
-- **Heltec L76K GNSS Module**
-  - High-precision Multi-Constellation GPS.
+- **Quescan M10FD (u-blox M10) GNSS Module**
+  - High-performance, ultra-low power GPS/Galileo/GLONASS/BeiDou receiver.
+  - 25mm Patch Antenna for superior reception in forests.
 - **1.5" OLED Display**
   - SH1107 Driver, 128x128 resolution, I2C interface.
-- **Bosch BNO055 or BNO085 IMU**
-  - BNO055: Standard 9-Axis Absolute Orientation Sensor.
-  - BNO085: High-precision VR-grade sensor (Recommended for best performance).
+- **Bosch BNO085 IMU**
+  - High-precision VR-grade absolute orientation sensor (Recommended).
+  - *Note: The M10FD often includes a QMC5883L compass, but the BNO085 is vastly superior for navigation due to sensor fusion.*
 - **Peripherals (Optional)**
   - Vibration Motor
   - Flashlight LED
@@ -53,6 +54,7 @@ This device uses GPS and compass sensors to help navigate back to a saved "home"
 - **RST**: Pin 38 (P1.06)
 - **WAKE**: Pin 34 (P1.02)
 - **PPS**: Pin 36 (P1.04)
+- *Note: Check if your M10 module allows 115200 or 9600 baud. Default config is 9600.*
 
 ### Peripherals
 - **Button**: Pin 42 (P1.10) - Active Low
@@ -204,7 +206,7 @@ Activated by holding the button for **5 seconds** while powering on.
 
 ## Power & Battery Life
 
-The device is optimized for long hikes using the ultra-low power **nRF52840** MCU and the efficient **Matek M10Q** GPS.
+The device is optimized for long hikes using the ultra-low power **nRF52840** MCU and the efficient **u-blox M10** GPS.
 
 **Settings:**
 - **Display Timeout:** 120 seconds (configurable in `src/config.h`)

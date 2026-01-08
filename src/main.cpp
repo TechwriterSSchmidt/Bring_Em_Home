@@ -848,6 +848,9 @@ void setup() {
     Serial1.setPins(PIN_GPS_RX, PIN_GPS_TX);
     Serial1.begin(GPS_BAUD);
 
+    // Optional: Send UBX config commands here if M10FD needs setup (e.g. rate, constellations)
+    // Most M10 modules default to Auto-Baud or 9600/38400.
+    
     loraSPI.setPins(PIN_LORA_MISO, PIN_LORA_SCK, PIN_LORA_MOSI);
     loraSPI.begin();
 

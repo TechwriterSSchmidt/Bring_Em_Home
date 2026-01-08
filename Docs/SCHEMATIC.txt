@@ -6,7 +6,7 @@ Core: nRF52840 + SX1262 LoRa
 External Components:
 - 1.5" OLED Display (SH1107 Driver, 128x128, I2C Bus 1)
 - Bosch BNO085 or BNO055 9-Axis Absolute Orientation Sensor (I2C Bus 2)
-- Matek SAM-M10Q GNSS (UART)
+- Quescan M10FD (u-blox M10) GNSS (UART)
 - Vibration Motor (Disabled), High Power LED (Disabled), External Button
 
 Connection Diagram:
