@@ -21,7 +21,7 @@
 
 ## Version 0.9.0 (Safety Update)
 **Date:** January 2, 2026
-**Status:** Stable / Safety Features Implemented
+**Status:** Pre-Release / Safety Features Implemented
 
 ### Summary
 This major update focuses on "Safety-First" features designed to prevent user error and ensure reliability in critical situations. It introduces a manual home confirmation step, a dedicated panic button, and persistent storage for the home location.
