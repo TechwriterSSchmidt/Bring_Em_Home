@@ -1,6 +1,6 @@
 # Release Notes - Bring Em Home
 
-## [1.0.2] - 2026-01-08
+## [0.9.2] - 2026-01-08
 ### Changed
 - **Hardware Upgrade**: Recommended GPS module updated to **Quescan M10FD (u-blox M10)**.
     - Reason: Superior reception in forests (25mm Patch Antenna) and ~60% lower power consumption compared to old L76K.
@@ -13,13 +13,13 @@
 - **GPS Pin Mapping**: Corrected GPS pin definitions based on T114 V2 schematic analysis (RX=37, TX=39, RST=38, WAKE=34).
 - **Peripherals**: Temporarily disabled Vibration Motor and Flashlight due to pin conflicts with GPS.
 
-## [1.0.1] - 2026-01-08
+## [0.9.1] - 2026-01-08
 ### Fixed
 - **LoRa Init Failure**: Corrected `PIN_LORA_RST` from 25 to 18 to match Heltec Mesh Node T114 V2 hardware/firmware definitions.
 - **Pin Conflict**: Removed `PIN_LORA_RST` from BNO085 constructor.
 - **Watchdog**: Added WDT (10s) via nRF52 register access.
 
-## Version 1.0.0 (Safety Update)
+## Version 0.9.0 (Safety Update)
 **Date:** January 2, 2026
 **Status:** Stable / Safety Features Implemented
 
@@ -53,7 +53,7 @@ This major update focuses on "Safety-First" features designed to prevent user er
 
 ---
 
-## Version 0.9.0 (Pre-Release)
+## Version 0.8.0
 **Date:** January 2, 2026
 **Status:** Hardware Migration Complete / Feature Freeze for Testing
 
