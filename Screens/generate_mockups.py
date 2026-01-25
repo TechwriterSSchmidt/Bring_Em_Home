@@ -75,8 +75,9 @@ def generate_sos():
     # Optional Arrow or Icon
     # draw_arrow(draw, WIDTH/2, 90, 20, 0) # Small arrow pointing up
     
-    img.save("mockup_sos.png")
-    print("Generated mockup_sos.png (Renamed content)")
+    save_path = os.path.join(os.path.dirname(__file__), "mockup_sos.png")
+    img.save(save_path)
+    print(f"Generated {save_path} (Renamed content)")
 
 def generate_confirm_home():
     img = create_image()
@@ -109,8 +110,9 @@ def generate_confirm_home():
     draw.text((10, 95), "1x: YES", font=font_opt, fill=FG_COLOR)
     draw.text((10, 115), "2x: NO (Load)", font=font_opt, fill=FG_COLOR)
     
-    img.save("mockup_confirm.png")
-    print("Generated mockup_confirm.png")
+    save_path = os.path.join(os.path.dirname(__file__), "mockup_confirm.png")
+    img.save(save_path)
+    print(f"Generated {save_path}")
 
 def generate_searching():
     img = create_image()
@@ -142,8 +144,9 @@ def generate_searching():
     fill_width = bar_width / 2
     draw.rectangle((bar_x + 2, bar_y + 2, bar_x + fill_width, bar_y + bar_height - 2), fill=FG_COLOR)
     
-    img.save("mockup_searching.png")
-    print("Generated mockup_searching.png")
+    save_path = os.path.join(os.path.dirname(__file__), "mockup_searching.png")
+    img.save(save_path)
+    print(f"Generated {save_path}")
 
 def draw_arrow(draw, cx, cy, r, angle_deg):
     # Convert to radians
@@ -206,8 +209,9 @@ def generate_breadcrumb():
     w = draw.textlength(dist_text, font=font_dist)
     draw.text((WIDTH - w, y2), dist_text, font=font_dist, fill=FG_COLOR)
     
-    img.save("mockup_breadcrumb.png")
-    print("Generated mockup_breadcrumb.png")
+    save_path = os.path.join(os.path.dirname(__file__), "mockup_breadcrumb.png")
+    img.save(save_path)
+    print(f"Generated {save_path}")
 
 def generate_nav():
     img = create_image()
@@ -260,8 +264,9 @@ def generate_nav():
     w = draw.textlength(text, font=font_dist)
     draw.text((WIDTH - w, y_footer), text, font=font_dist, fill=FG_COLOR)
     
-    img.save("mockup_nav.png")
-    print("Generated mockup_nav.png")
+    save_path = os.path.join(os.path.dirname(__file__), "mockup_nav.png")
+    img.save(save_path)
+    print(f"Generated {save_path}")
 
 def generate_charging():
     img = create_image()
@@ -291,8 +296,9 @@ def generate_charging():
     w = draw.textlength(text, font=font_est)
     draw.text(((WIDTH - w) / 2, 90), text, font=font_est, fill=FG_COLOR)
         
-    img.save("mockup_charging.png")
-    print("Generated mockup_charging.png")
+    save_path = os.path.join(os.path.dirname(__file__), "mockup_charging.png")
+    img.save(save_path)
+    print(f"Generated {save_path}")
 
 def generate_sos_countdown():
     img = create_image()
@@ -317,8 +323,9 @@ def generate_sos_countdown():
     w = draw.textlength(text, font=font_sub)
     draw.text(((WIDTH - w) / 2, 110), text, font=font_sub, fill=FG_COLOR)
     
-    img.save("mockup_sos_countdown.png")
-    print("Generated mockup_sos_countdown.png")
+    save_path = os.path.join(os.path.dirname(__file__), "mockup_sos_countdown.png")
+    img.save(save_path)
+    print(f"Generated {save_path}")
 
 if __name__ == "__main__":
     generate_sos()
