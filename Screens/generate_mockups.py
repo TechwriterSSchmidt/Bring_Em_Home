@@ -62,18 +62,39 @@ def generate_sos():
     
     # Title
     font_title = get_font(14, bold=True)
-    text = "Bring Em Home!"
+    text = "GET EM HOME!"
     w = draw.textlength(text, font=font_title)
     draw.text(((WIDTH - w) / 2, 35), text, font=font_title, fill=FG_COLOR)
     
     # Subtext
     font_sub = get_font(12)
-    text = "Return Active"
+    text = "Returning..."
     w = draw.textlength(text, font=font_sub)
     draw.text(((WIDTH - w) / 2, 60), text, font=font_sub, fill=FG_COLOR)
     
-    # Optional Arrow or Icon
-    # draw_arrow(draw, WIDTH/2, 90, 20, 0) # Small arrow pointing up
+    # Visualization: Arrow -> House
+    # Center Y for graphics = 95
+    base_y = 95
+    
+    # House (Right)
+    hx = 85
+    hy = base_y
+    # Body
+    draw.rectangle((hx, hy-8, hx+16, hy+8), outline=FG_COLOR)
+    # Roof
+    draw.polygon([(hx-2, hy-8), (hx+8, hy-18), (hx+18, hy-8)], outline=FG_COLOR)
+    # Door
+    draw.rectangle((hx+6, hy, hx+10, hy+8), fill=FG_COLOR)
+    
+    # Arrow (Left) pointing to House
+    ax_start = 35
+    ax_end = 75
+    ay = base_y
+    
+    # Shaft
+    draw.line((ax_start, ay, ax_end, ay), fill=FG_COLOR, width=2)
+    # Head
+    draw.polygon([(ax_end, ay), (ax_end-6, ay-6), (ax_end-6, ay+6)], fill=FG_COLOR)
     
     save_path = os.path.join(os.path.dirname(__file__), "mockup_sos.png")
     img.save(save_path)

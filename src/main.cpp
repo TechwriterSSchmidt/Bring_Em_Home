@@ -919,7 +919,7 @@ void loop() {
                  currentMode = MODE_RETURN;
                  // Haptic Feedback
                  triggerVibration(); delay(100); triggerVibration(); delay(100); triggerVibration();
-                 showFeedback("RETURN MODE", "GET ME HOME!", FEEDBACK_DURATION_LONG);
+                 showFeedback("GET EM HOME!", "Returning...", FEEDBACK_DURATION_LONG);
                  
                  // Set target to last breadcrumb
                  if (!breadcrumbs.empty()) {
@@ -978,7 +978,7 @@ void loop() {
                              case MENU_MODE_SWITCH:
                                 if (currentMode == MODE_EXPLORE) {
                                     currentMode = MODE_RETURN;
-                                    showFeedback("RETURN MODE", "", 2000);
+                                    showFeedback("GET EM HOME!", "Returning...", 2000);
                                     if (!breadcrumbs.empty() && gps.location.isValid()) {
                                         targetBreadcrumbIndex = breadcrumbs.size() - 1; 
                                     }
