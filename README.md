@@ -68,6 +68,17 @@ The device is operated entirely with a single button.
 | **Any Time** | **Hold (3s)** | **PANIC MODE:** Immediate activaton of Return Mode. |
 | **Startup** | **1x / 2x Click** | Confirm Home Location (1x = New, 2x = Load). |
 
+### Status LED (Visual Feedback)
+
+The internal RGB LED provides status information, allowing you to check the device state even when the screen is off (saving power):
+
+| Color | Pattern | Meaning |
+| :---: | :--- | :--- |
+| **🔴 Red** | **Pulsing** | **Searching for Satellites** (No GPS Fix). |
+| **🟢 Green** | **Short Blink (4s)** | **Recording.** GPS is fixed, Breadcrumbs are being saved. |
+| **🟡 Yellow** | **Flash (10s)** | **Low Battery** (< 10%). Charge soon! |
+| **⚪ White** | **Pulsing** | **Charging** (When connected to USB). |
+
 ## Power Management & Optimization
 
 The device features an advanced power management system centered around the **nRF52840's Deep Sleep** capabilities.
