@@ -669,6 +669,16 @@ void setup() {
     // --- Wake-up Check (Soft-Off Logic) ---
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     
+    Serial.begin(115200);
+    // SAFETY CATCH: Wait for USB and do nothing else
+    // This allows us to verify if the core firmware is running.
+    // Comment out the "while(1)" loop to proceed with normal boot.
+    /*
+    while (!Serial) delay(10);
+    Serial.println("USB ALIVE - Safe Mode");
+    while(1) { Serial.println("."); delay(1000); NRF_WDT->RR[0] = 0x6E524635; } 
+    */
+
     /* DISABLED for Debugging USB
     if (digitalRead(PIN_BUTTON) == LOW) {
         unsigned long start = millis();
@@ -775,9 +785,13 @@ void setup() {
     // digitalWrite(PIN_FLASHLIGHT, LOW);
     // TODO: Future upgrade: Miniature DC-SSR for power saving. LED removed for now.
 
-    Wire.setPins(PIN_I2C_SDA, PIN_I2C_SCL);
-    Wire.begin();
-    Wire.setClock(I2C_SPEED_FAST); // Increase I2C speed to 400kHz
+    // Wire.setPins(PIN_I2C_SDA, PIN_I2C_SCL);
+    // Wire.begin();
+    // Wire.setClock(I2C_SPEED_FAST); // Increase I2C speed to 400kHz
+    
+    // Wire.setPins(PIN_I2C_SDA, PIN_I2C_SCL);
+    // Wire.begin();
+    // Wire.setClock(I2C_SPEED_FAST); 
 
     // Init External I2C for Sensor (P2 Header)
     // Wire1 uses same pins as Wire, avoiding double-init
@@ -787,6 +801,7 @@ void setup() {
     
     // Initialize IMU (BNO085 or BNO055)
     #if USE_BNO085
+    /* 
     if (!bno08x.begin_I2C(BNO085_ADDRESS, &Wire)) {
         Serial.println("No BNO085 detected on External I2C!");
         hasCompass = false;
@@ -806,9 +821,11 @@ void setup() {
              Serial.println("Could not enable linear accel");
         }
     }
+    */
     #else
     // Initialize BNO055 with Retry Logic
     bool bnoFound = false;
+    /*
     for(int i=0; i<3; i++) {
         if(bno.begin()) {
             bnoFound = true;
@@ -816,6 +833,7 @@ void setup() {
         }
         delay(200);
     }
+    */
     
     if (!bnoFound) {
         Serial.println("No BNO055 detected!");
@@ -849,12 +867,13 @@ void setup() {
     // Reserve memory for breadcrumbs to prevent fragmentation
     breadcrumbs.reserve(MAX_BREADCRUMBS);
 
-    u8g2.begin();
-    u8g2.setDrawColor(1);
-    u8g2.setFontPosTop();
+    // u8g2.begin();
+    // u8g2.setDrawColor(1);
+    // u8g2.setFontPosTop();
     
     // Boot Logo
-    u8g2.clearBuffer();
+    // u8g2.clearBuffer();
+    /*
     int cx = 64, cy = 50;
     u8g2.drawLine(cx-24, cy, cx, cy-24);
     u8g2.drawLine(cx, cy-24, cx+24, cy);
@@ -868,6 +887,7 @@ void setup() {
     u8g2.setCursor((SCREEN_WIDTH - w) / 2, 105);
     u8g2.print(title);
     u8g2.sendBuffer();
+    */
     delay(2000);
 }
 
