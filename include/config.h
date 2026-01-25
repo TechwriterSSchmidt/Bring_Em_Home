@@ -27,27 +27,19 @@
 
 // User Interface
 #define PIN_BUTTON_1     15  // P0.15 (Long Press: Home, Short: Waypoint)
-#define PIN_BUTTON_2     24  // P0.24 (Toggle Screens)
 #define PIN_BUTTON       PIN_BUTTON_1 // Mapping for legacy code convenience
 
-// Feedback
-#define PIN_NEOPIXEL     17  // P0.17 (Built-in RGB)
-#define PIN_VIB_MOTOR    13  // P0.13 (Haptic Feedback)
+// Feedback (Outputs)
+#define PIN_VIB_MOTOR    13  // P0.13 (Vibration Motor)
+#define PIN_NEOPIXEL     29  // P0.29 (External WS2812 Data)
 
 // Power Management
 #define PIN_BAT_VOLT     4   // P0.04 (AIN2)
 #define PIN_BAT_CHARGE   5   // P0.05 (Charging Status)
 
 // Enable/Disable Features
-#define HAS_RGB_LED      1
-#define HAS_VIB_MOTOR    1
-#define HAS_BAT_SENSE    1
-#define HAS_FLASHLIGHT   0   // Removed
-#define HAS_SOS_LED      0   // Removed
-#define PIN_NEOPIXEL        29      // P0.29 (External WS2812 Data)
+// #define HAS_RGB_LED      1 // Defined in code via PIN_NEOPIXEL check, but can be explicit here
 
-// Outputs
-#define PIN_VIB_MOTOR       13      // P0.13 (Vibration Motor)
 #define PIN_FLASHLIGHT      -1      // Disabled
 
 // --- Power Management ---

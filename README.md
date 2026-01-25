@@ -25,6 +25,8 @@ This device uses GPS and compass sensors to find its way back to a stored “sta
   - SH1107 Driver, 128x128 resolution, I2C interface.
 - **Bosch BNO085 IMU**
   - High-precision VR-grade absolute orientation sensor.
+- **WS2812B RGB LED**
+  - External status LED for visual feedback without screen.
 - **Lithium Polymer Battery**
 
 ## Hardware Connections (SuperMini nRF52840)
@@ -42,7 +44,7 @@ See [Docs/SCHEMATIC.txt](Docs/SCHEMATIC.txt) for detailed wiring diagrams.
 ### User Interface
 - **Button**: P0.15 (Main User Input)
 - **Vibration Motor**: P0.13
-- **RGB LED**: P0.17 (Internal)
+- **RGB LED**: P0.29 (External data line)
 
 ## User Interface & Usage
 
@@ -70,7 +72,7 @@ The device is operated entirely with a single button.
 
 ### Status LED (Visual Feedback)
 
-The internal RGB LED provides status information, allowing you to check the device state even when the screen is off (saving power):
+The external RGB LED (connected to P0.29) provides status information, allowing you to check the device state even when the screen is off (saving power):
 
 | Color | Pattern | Meaning |
 | :---: | :--- | :--- |
