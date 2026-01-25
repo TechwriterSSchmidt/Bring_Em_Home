@@ -54,7 +54,7 @@ See [Docs/SCHEMATIC.txt](Docs/SCHEMATIC.txt) for detailed wiring diagrams.
 | **Confirm Home** | ![Confirm](Screens/mockup_confirm.png) | **1x Click:** Set new Home (Here).<br>**2x Click:** Load saved Home. |
 | **Navigation** | ![Nav](Screens/mockup_nav.png) | **Explore:** Shows Compass & Stats.<br>**Arrow:** Points to Home/Target. |
 | **Return Mode** | ![Return](Screens/mockup_breadcrumb.png) | **Backtrack:** Follow arrow to nearest breadcrumb.<br>**Distance:** Shows dist to next WP. |
-| **Get Me Home** | ![SOS](Screens/mockup_sos.png) | Activated by holding button >3s.<br>Guides you back immediately. |
+| **Get Me Home** | ![SOS](Screens/mockup_sos.png) | **Hold >3s** to Toggle Mode.<br>Guides you back to Start. |
 
 ### Button Controls (Single Button)
 
@@ -64,8 +64,8 @@ The device is operated entirely with a single button.
 | :--- | :--- | :--- |
 | **Screen OFF** | **1 Click** | Wake up display. |
 | **Screen ON** | **1 Click** | Cycle Menu Options (Switch Mode -> Power Off). |
-| **Menu Active** | **Hold (1s)** |GET ME HOMxecute the displayed option. |
-| **Any Time** | **Hold (3s)** | **PANIC MODE:** Immediate activaton of Return Mode. |
+| **Menu Active** | **Hold (1s)** | Execute the displayed option. |
+| **Any Time** | **Hold (3s)** | **GET ME HOME:** Toggle between Explore and Return Mode. |
 | **Startup** | **1x / 2x Click** | Confirm Home Location (1x = New, 2x = Load). |
 
 ### Status LED (Visual Feedback)

@@ -905,20 +905,30 @@ void loop() {
     if (currentButtonState == LOW) {
         unsigned long duration = now - buttonPressStartTime;
         
-        // PANIC / RETURN MODE (3s Hold)
+        // TOGGLE: EXPLORE <-> RETURN MODE (3s Hold)
         if (!isLongPressHandled && duration > 3000 && duration < 10000) {
              isLongPressHandled = true;
-             currentMode = MODE_RETURN;
-             // Haptic Feedback
-             triggerVibration(); delay(100); triggerVibration(); delay(100); triggerVibration();
-             showFeedback("RETURN MODE", "GET ME HOME!", FEEDBACK_DURATION_LONG);
+
+             if (currentMode == MODE_RETURN) {
+                 // Deactivate -> Go to Explore
+                 currentMode = MODE_EXPLORE;
+                 triggerVibration();
+                 showFeedback("EXPLORE MODE", "Tracking...", FEEDBACK_DURATION_LONG);
+             } else {
+                 // Activate -> Go to Return
+                 currentMode = MODE_RETURN;
+                 // Haptic Feedback
+                 triggerVibration(); delay(100); triggerVibration(); delay(100); triggerVibration();
+                 showFeedback("RETURN MODE", "GET ME HOME!", FEEDBACK_DURATION_LONG);
+                 
+                 // Set target to last breadcrumb
+                 if (!breadcrumbs.empty()) {
+                      targetBreadcrumbIndex = breadcrumbs.size() - 1;
+                 }
+             }
+
              if (!isDisplayOn) { u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF); isDisplayOn = true; }
              lastInteractionTime = now;
-             
-             // Set target to last breadcrumb
-             if (!breadcrumbs.empty()) {
-                  targetBreadcrumbIndex = breadcrumbs.size() - 1;
-             }
         }
 
         // EXTRA LONG PRESS (15s) -> SETUP MODE (ID Selection) [Keep logic but fix structure if broken]
