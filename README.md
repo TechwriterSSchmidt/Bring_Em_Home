@@ -99,13 +99,13 @@ The device features an advanced power management system centered around the **nR
 
 ### Estimated Runtimes
 
-Calculated based on average power consumption of ~15mA (Screen Off, GPS Active) and ~35mA (Screen On, Active Navigation).
+Calculated based on average power consumption of ~15mA (Screen Off, GPS Active) and ~20mA (Active Navigation with **Smart Wake** enabled, approx. 20% active screen time).
 
-| Battery Capacity | Screen Off (Tracking Only) | Screen On (Navigating) | Deep Sleep (Standby) |
+| Battery Capacity | Screen Off (Tracking Only) | Active Navigation (Smart Wake) | Continuous Screen On |
 | :--- | :--- | :--- | :--- |
-| **1000 mAh** | ~66 Hours | ~28 Hours | > 1 Year |
-| **1200 mAh** | ~80 Hours | ~34 Hours | > 1 Year |
-| **1500 mAh** | ~100 Hours | ~42 Hours | > 1 Year
+| **1000 mAh** | ~66 Hours | **~50 Hours** | ~28 Hours |
+| **1200 mAh** | ~80 Hours | **~60 Hours** | ~34 Hours |
+| **1500 mAh** | ~100 Hours | **~75 Hours** | ~42 Hours |
 ## Features
 
 - **Smart "Lift-to-Wake"**: Uses the IMU to automatically turn the display ON when looked at (held flat) and OFF when hanging by the side, maximizing battery life.
