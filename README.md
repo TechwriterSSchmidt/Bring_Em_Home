@@ -61,8 +61,7 @@ The device features an advanced power management system centered around the **nR
 
 Calculated based on average power consumption of ~15mA (Screen Off, GPS Active) and ~35mA (Screen On, Active Navigation).
 
-| Battery Capacity | Screen Off (Tracking Only) | Screen On (Navigating) |
-| :--- | :--- | :--- | Deep Sleep (Standby) |
+| Battery Capacity | Screen Off (Tracking Only) | Screen On (Navigating) | Deep Sleep (Standby) |
 | :--- | :--- | :--- | :--- |
 | **1000 mAh** | ~66 Hours | ~28 Hours | > 1 Year |
 | **1200 mAh** | ~80 Hours | ~34 Hours | > 1 Year |
@@ -77,4 +76,54 @@ Calculated based on average power consumption of ~15mA (Screen Off, GPS Active) 
 
 ## License
 
-PolyForm Noncommercial License 1.0.0.
+PolyForm Noncommercial License 1.0.0
+
+Copyright (c) 2026 Bring Em Home Contributors
+
+1. Rights Granted
+
+The Licensor grants to each Recipient all rights required to use the
+Software and other Content, on a royalty-free basis, for any purpose
+other than a Commercial Use.
+
+2. Limitations on Grant
+
+The Licensor does not grant any rights for Commercial Use.
+
+3. Conditions
+
+The Licensor grants Rights only on the condition that:
+
+    a. The Recipient must ensure that anyone who receives the Software
+       or other Content from the Recipient also receives a copy of this
+       Agreement or the URL <https://polyformproject.org/licenses/noncommercial/1.0.0>,
+       and
+
+    b. If the Recipient makes any changes to the Software, they must
+       license those changes under the terms of this Agreement.
+
+4. Definitions
+
+"Commercial Use" means any use of the Software or other Content by a
+business, or for a commercial purpose, including use by any other person
+on behalf of a business or for a commercial purpose.
+
+"Content" means copyrightable material, including software and
+documentation.
+
+"Licensor" means the individual or entity offering the Content under
+this Agreement.
+
+"Recipient" means anyone who receives the Content under this Agreement.
+
+"Software" means the computer software offered under this Agreement.
+
+5. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
