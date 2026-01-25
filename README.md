@@ -76,54 +76,46 @@ Calculated based on average power consumption of ~15mA (Screen Off, GPS Active) 
 
 ## License
 
-PolyForm Noncommercial License 1.0.0
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
 
-Copyright (c) 2026 Bring Em Home Contributors
+- **Noncommercial Use**: You may use this software for personal, educational, or evaluation purposes.
+- **Commercial Use Restricted**: You may NOT use this software for commercial purposes (selling, paid services, business use) without prior written consent.
 
-1. Rights Granted
+<details>
+<summary>View Full License Text</summary>
 
-The Licensor grants to each Recipient all rights required to use the
-Software and other Content, on a royalty-free basis, for any purpose
-other than a Commercial Use.
+### PolyForm Noncommercial License 1.0.0
 
-2. Limitations on Grant
+#### 1. Purpose
+This license allows you to use the software for noncommercial purposes.
 
-The Licensor does not grant any rights for Commercial Use.
+#### 2. Agreement
+In order to receive this license, you must agree to its rules. The rules of this license are both obligations (like a contract) and conditions to your license. You must not do anything with this software that triggers a rule that you cannot or will not follow.
 
-3. Conditions
+#### 3. License Grant
+The licensor grants you a copyright license for the software to do everything you might do with the software that would otherwise infringe the licensor's copyright in it for any permitted purpose. However, you may only do so to the extent that such use does not violate the rules.
 
-The Licensor grants Rights only on the condition that:
+#### 4. Permitted Purpose
+A purpose is a permitted purpose if it consists of:
+1. Personal use
+2. Evaluation of the software
+3. Development of software using the software as a dependency or evaluation tool
+4. Educational use
 
-    a. The Recipient must ensure that anyone who receives the Software
-       or other Content from the Recipient also receives a copy of this
-       Agreement or the URL <https://polyformproject.org/licenses/noncommercial/1.0.0>,
-       and
+**Commercial use is strictly prohibited without prior written consent from the author.**
 
-    b. If the Recipient makes any changes to the Software, they must
-       license those changes under the terms of this Agreement.
+#### 5. Rules
 
-4. Definitions
+##### 5.1. Noncommercial Use
+You must not use the software for any commercial purpose. A commercial purpose includes, but is not limited to:
+1. Using the software to provide a service to third parties for a fee.
+2. Selling the software or a derivative work.
+3. Using the software in a commercial environment or business workflow.
 
-"Commercial Use" means any use of the Software or other Content by a
-business, or for a commercial purpose, including use by any other person
-on behalf of a business or for a commercial purpose.
+##### 5.2. Notices
+You must ensure that anyone who gets a copy of any part of the software from you also gets a copy of these terms or the URL for them above, as well as copies of any copyright notice or other rights notice in the software.
 
-"Content" means copyrightable material, including software and
-documentation.
+#### 6. Disclaimer
+**THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.**
 
-"Licensor" means the individual or entity offering the Content under
-this Agreement.
-
-"Recipient" means anyone who receives the Content under this Agreement.
-
-"Software" means the computer software offered under this Agreement.
-
-5. Disclaimer
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+</details>
