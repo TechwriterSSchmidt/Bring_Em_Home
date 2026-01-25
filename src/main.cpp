@@ -1236,10 +1236,59 @@ void loop() {
             if (millis() < feedbackEndTime) {
                 u8g2.setFont(u8g2_font_ncenB10_tr);
                 w = u8g2.getStrWidth(feedbackTitle.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 50);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 40); // Moved up
                 u8g2.print(feedbackTitle);
-                if (feedbackSub.length() > 0) {
+
+                // Special Graphic for "Return Mode"
+                if (feedbackTitle == "GET EM HOME!") {
+                    // Coordinates
+                    int base_y = 95;
+                    
+                    // 1. Flower "Emilie" (Left) - Outline
+                    int fx = 25; int fr = 6;
+                    u8g2.drawCircle(fx, base_y - fr, fr); // Top
+                    u8g2.drawCircle(fx, base_y + fr, fr); // Bottom
+                    u8g2.drawCircle(fx - fr, base_y, fr); // Left
+                    u8g2.drawCircle(fx + fr, base_y, fr); // Right
+                    u8g2.drawCircle(fx, base_y, 3);       // Center
+
+                    // 2. House (Right) - Outline
+                    int hx = 95; // Moved slightly right
+                    int hy = base_y;
+                    u8g2.drawFrame(hx, hy - 8, 16, 16); // Body
+                    // Roof (Triangle)
+                    u8g2.drawLine(hx - 2, hy - 8, hx + 8, hy - 18);
+                    u8g2.drawLine(hx + 8, hy - 18, hx + 18, hy - 8);
+                    u8g2.drawLine(hx - 2, hy - 8, hx + 18, hy - 8); // Roof base
+                    // Door (Filled)
+                    u8g2.drawBox(hx + 6, hy, 4, 8);
+
+                    // 3. Thick Outline Arrow (Center)
+                    int ax_s = 50; int ax_e = 85; 
+                    int ay = base_y;
+                    int aw = 8; // Arrow Width (Tail)
+                    int hw = 16; // Head Width
+                    int hl = 12; // Head Length
+
+                    // Drawn as loop of lines
+                    // Tail Top (50, 91) -> Head Base Top (73, 91)
+                    u8g2.drawLine(ax_s, ay - aw/2, ax_e - hl, ay - aw/2);
+                    // Head Base Top Up (73, 91) -> Wing Top (73, 87)
+                    u8g2.drawLine(ax_e - hl, ay - aw/2, ax_e - hl, ay - hw/2);
+                    // Wing Top -> Tip (85, 95)
+                    u8g2.drawLine(ax_e - hl, ay - hw/2, ax_e, ay);
+                    // Tip -> Wing Bottom (73, 103)
+                    u8g2.drawLine(ax_e, ay, ax_e - hl, ay + hw/2);
+                    // Wing Bottom -> Head Base Bottom (73, 99)
+                    u8g2.drawLine(ax_e - hl, ay + hw/2, ax_e - hl, ay + aw/2);
+                    // Head Base Bottom -> Tail Bottom (50, 99)
+                    u8g2.drawLine(ax_e - hl, ay + aw/2, ax_s, ay + aw/2);
+                    // Tail Back (50, 99) -> Tail Top (50, 91)
+                    u8g2.drawLine(ax_s, ay + aw/2, ax_s, ay - aw/2);
+
+                } else if (feedbackSub.length() > 0) {
                     u8g2.setFont(u8g2_font_6x10_tr);
+                    // ... old logic for generic messages ...
                     int nl = feedbackSub.indexOf('\n');
                     if (nl > 0) {
                         String l1 = feedbackSub.substring(0, nl);
@@ -1252,7 +1301,7 @@ void loop() {
                         u8g2.print(l2);
                     } else {
                         w = u8g2.getStrWidth(feedbackSub.c_str());
-                        u8g2.setCursor((SCREEN_WIDTH - w) / 2, 80);
+                        u8g2.setCursor((SCREEN_WIDTH - w) / 2, 70);
                         u8g2.print(feedbackSub);
                     }
                 }

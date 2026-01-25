@@ -86,15 +86,47 @@ def generate_sos():
     # Door
     draw.rectangle((hx+6, hy, hx+10, hy+8), fill=FG_COLOR)
     
-    # Arrow (Left) pointing to House
-    ax_start = 35
+    # Flower "Emilie" (Left)
+    fx = 25
+    fy = base_y
+    fr = 6 # radius
+    # Petals (4 circles)
+    draw.ellipse((fx-fr, fy-fr-fr, fx+fr, fy-fr), outline=FG_COLOR) # Top
+    draw.ellipse((fx-fr, fy+fr, fx+fr, fy+fr+fr), outline=FG_COLOR) # Bottom
+    draw.ellipse((fx-fr-fr, fy-fr, fx-fr, fy+fr), outline=FG_COLOR) # Left
+    draw.ellipse((fx+fr, fy-fr, fx+fr+fr, fy+fr), outline=FG_COLOR) # Right
+    # Center
+    draw.ellipse((fx-fr/2, fy-fr/2, fx+fr/2, fy+fr/2), outline=FG_COLOR)
+
+    # Thick Outline Arrow (Left) pointing to House
+    ax_start = 50
     ax_end = 75
     ay = base_y
     
-    # Shaft
-    draw.line((ax_start, ay, ax_end, ay), fill=FG_COLOR, width=2)
-    # Head
-    draw.polygon([(ax_end, ay), (ax_end-6, ay-6), (ax_end-6, ay+6)], fill=FG_COLOR)
+    # Draw Thick Outline Arrow
+    # Polygon points:
+    # 1. Tail Top
+    # 2. Head Base Top
+    # 3. Head Tip
+    # 4. Head Base Bottom
+    # 5. Tail Bottom
+    # 6. Back (Closed loop)
+    
+    arrow_width = 8 # thickness of tail
+    head_width = 16
+    head_len = 12
+    
+    points = [
+        (ax_start, ay - arrow_width/2),          # Tail Top
+        (ax_end - head_len, ay - arrow_width/2), # Head Base Top
+        (ax_end - head_len, ay - head_width/2),  # Wing Top
+        (ax_end, ay),                            # Tip
+        (ax_end - head_len, ay + head_width/2),  # Wing Bottom
+        (ax_end - head_len, ay + arrow_width/2), # Head Base Bottom
+        (ax_start, ay + arrow_width/2)           # Tail Bottom
+    ]
+    
+    draw.polygon(points, outline=FG_COLOR, fill=BG_COLOR) # Outline only
     
     save_path = os.path.join(os.path.dirname(__file__), "mockup_sos.png")
     img.save(save_path)
