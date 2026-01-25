@@ -22,7 +22,6 @@ using namespace Adafruit_LittleFS_Namespace;
 #include <nrf_gpio.h>
 #include <nrf_power.h>
 #include <vector>
-#include <RadioLib.h>
 #include <Adafruit_NeoPixel.h>
 
 // Define second I2C bus for External Compass
@@ -91,30 +90,40 @@ bool loadHomePosition(double &lat, double &lon) {
     return false;
 }
 
-void saveBuddyID(int id) {
+void clearBreadcrumbs() {
     InternalFS.begin();
-    File file = InternalFS.open("/id.txt", FILE_O_WRITE);
+    InternalFS.remove("/crumbs.dat");
+    Serial.println("Breadcrumbs cleared from Flash");
+}
+
+void saveBreadcrumb(double lat, double lon) {
+    InternalFS.begin();
+    File file = InternalFS.open("/crumbs.dat", FILE_O_APPEND);
     if (file) {
-        file.seek(0);
-        file.print(String(id));
+        Breadcrumb b;
+        b.lat = lat;
+        b.lon = lon;
+        file.write((uint8_t*)&b, sizeof(Breadcrumb));
         file.close();
-        Serial.println("Buddy ID Saved: " + String(id));
+        // Serial.println("Crumb Saved"); // Commented out to reduce serial spam
     }
 }
 
-int loadBuddyID() {
+void loadBreadcrumbs() {
     InternalFS.begin();
-    File file = InternalFS.open("/id.txt", FILE_O_READ);
+    breadcrumbs.clear();
+    
+    if (!InternalFS.exists("/crumbs.dat")) return;
+    
+    File file = InternalFS.open("/crumbs.dat", FILE_O_READ);
     if (file) {
-        String content = file.readString();
-        file.close();
-        if (content.length() > 0) {
-            int id = content.toInt();
-            Serial.println("Buddy ID Loaded: " + String(id));
-            return id;
+        Breadcrumb b;
+        while (file.read((uint8_t*)&b, sizeof(Breadcrumb)) == sizeof(Breadcrumb)) {
+            breadcrumbs.push_back(b);
         }
+        file.close();
+        Serial.println("Loaded " + String(breadcrumbs.size()) + " breadcrumbs.");
     }
-    return -1; // Not set
 }
 #if USE_BNO085
 // Pins: -1 = Reset Pin not used (or not connected to MCU)
@@ -124,21 +133,6 @@ sh2_SensorValue_t sensorValue;
 Adafruit_BNO055 bno = Adafruit_BNO055(BNO055_ID, BNO055_ADDRESS, &Wire1);
 #endif
 
-// Use default SPI instance for nRF52
-SPIClass& loraSPI = SPI;
-
-SX1262 radio = new Module(PIN_LORA_NSS, PIN_LORA_DIO1, PIN_LORA_RST, PIN_LORA_BUSY);
-
-// LoRaWAN Globals (Hybrid Mode - DISABLED)
-/*
-LoRaWANNode* node = nullptr;
-bool loraWanJoined = false;
-uint64_t joinEUI = LORAWAN_JOIN_EUI;
-uint64_t devEUI = LORAWAN_DEV_EUI;
-uint8_t appKey[] = LORAWAN_APP_KEY;
-uint8_t nwkKey[] = LORAWAN_APP_KEY; 
-*/
-
 // Dummy NeoPixel for now as it's disabled in config
 #if defined(PIN_NEOPIXEL) && (PIN_NEOPIXEL >= 0)
 Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
@@ -146,8 +140,7 @@ Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel pixels(1, -1, NEO_GRB + NEO_KHZ800);
 #endif
 
-// LoRa State
-unsigned long lastLoRaTx = 0;
+// LoRa State - REMOVED
 
 // U8g2 Display Object (SH1107 128x128 I2C)
 U8G2_SH1107_128X128_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
@@ -206,15 +199,6 @@ bool calibSaved = false;
 
 // --- Non-Blocking Globals ---
 volatile bool transmissionFlag = false;
-bool isLoRaTransmitting = false;
-
-// Buddy Tracking
-double buddyLat = 0.0;
-double buddyLon = 0.0;
-unsigned long lastBuddyPacketTime = 0;
-bool hasBuddy = false;
-unsigned long lastBuddyTx = 0; // For sending periodic updates
-
 unsigned long feedbackEndTime = 0;
 String feedbackTitle = "";
 String feedbackSub = "";
@@ -233,7 +217,7 @@ void showFeedback(String title, String sub, int duration) {
     feedbackEndTime = millis() + duration;
     if (!isDisplayOn) {
         u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF);
-        isDisplayOn = true;
+  // Flag removed;
     }
 }
 
@@ -271,12 +255,9 @@ void toggleSOS() {
     }
 }
 
-// --- Helper Functions ---
-
-void powerOff() {
-    Serial.println("Entering Deep Sleep...");
-    
-    // 1. Feedback (Falling Pattern or LED Fade)
+// --- HSerial.println("SOS Deactivated.");
+    } else {
+        Serial.println("SOS Activated!
     #if HAS_VIB_MOTOR
     digitalWrite(PIN_VIB_MOTOR, HIGH); delay(500);
     digitalWrite(PIN_VIB_MOTOR, LOW);  delay(200);
@@ -608,118 +589,6 @@ void fatalError(String message) {
     NVIC_SystemReset();
 }
 
-// --- Buddy Protocol Manager ---
-void sendBuddyPacket() {
-    #if !ENABLE_LORAWAN
-    if (gps.location.isValid()) {
-        // Status Flag: 0=Explore, 1=Return (Help needed / Going home)
-        int statusFlag = (currentMode == MODE_RETURN) ? 1 : 0;
-        
-        String msg = "BUDDY Lat:" + String(gps.location.lat(), 6) + 
-                     " Lon:" + String(gps.location.lng(), 6) +
-                     " M:" + String(statusFlag); // M: for Mode
-
-        Serial.println("Sending Buddy Update...");
-        radio.standby();
-        transmissionFlag = false;
-        int state = radio.startTransmit(msg);
-        if (state == RADIOLIB_ERR_NONE) {
-            isLoRaTransmitting = true;
-        } else {
-            Serial.print("TX Failed: "); Serial.println(state);
-            radio.startReceive(); // Go back to RX if failed
-        }
-    }
-    #endif
-}
-
-void manageBuddyProtocol() {
-    if (isSOSActive) return;
-    #if ENABLE_LORAWAN
-    return;
-    #endif
-
-    // Fallback if no GPS time: Use simple timer and continuous RX
-    if (!gps.time.isValid()) {
-        if (millis() - lastBuddyTx > BUDDY_TX_INTERVAL) {
-            lastBuddyTx = millis();
-            sendBuddyPacket();
-        }
-        return;
-    }
-
-    #if ENABLE_SMART_POWER
-    if (deviceID > 0) {
-        int currentSec = gps.time.second();
-        
-        // Dynamic Slot Calculation for IDs 1-5 (30s Interval)
-        // ID 1: 00, 30
-        // ID 2: 06, 36
-        // ID 3: 12, 42
-        // ID 4: 18, 48
-        // ID 5: 24, 54
-        int myOffset = (deviceID - 1) * 6; 
-        
-        bool txSlot = (currentSec == myOffset || currentSec == (myOffset + 30));
-        
-        // RX Slot: Listen when others might be transmitting
-        // We expect transmissions every 6 seconds at :00, :06, :12...
-        // Open window for 4s around each 6s mark to account for drift
-        int secMod6 = currentSec % 6;
-        bool rxSlot = (secMod6 <= 1 || secMod6 >= 5); // Window: 59, 00, 01 ... 05, 06, 07
-        
-        // Don't RX during my own TX slot
-        if (txSlot) rxSlot = false; 
-
-        // TX Logic
-        static int lastTxSec = -1;
-        if (txSlot && currentSec != lastTxSec) {
-            sendBuddyPacket();
-            lastTxSec = currentSec;
-        }
-        
-        // RX/Sleep Logic
-        if (rxSlot) {
-            // Ensure we are in RX mode
-            // (RadioLib handles transition to RX automatically if configured, 
-            // but we might have put it to sleep manually)
-            // check status not easy, just blindly existing logic
-            // The logic below handles mode switching
-        } else {
-             // Use sleep if not in RX slot and not transmitting
-             // BUT: We handle this in the main loop to not interrupt TX
-        }
-        
-        // Update Radio State Machine based on slots
-        // Note: isLoRaTransmitting is handled in loop()
-        // Here we just manage Sleep vs RX for power saving
-        if (!isLoRaTransmitting && !txSlot) {
-            if (rxSlot) {
-                // Ensure RX
-                 // Implementation detail: RadioLib startReceive is persistent.
-                 // We only wake up if sleeping.
-                 // Since we don't track detailed sleep state here, assume 
-                 // we just let it run. Implementation of true duty cycle 
-                 // needs careful state management. 
-                 // For now, let's trusting the loop to keep RX open
-                 // and only explicitly SLEEP if we really want to.
-                 // Given the complexity of 5 devices, we might skip forced sleep 
-                 // logic for RX to ensure we don't miss packets until verified.
-                 // User asked for ID logic, not aggressive power optimization.
-                 // -> Commenting out aggressive sleep for now to ensure connectivity.
-            }
-        }
-    }
-    #else
-    // Standard Interval Logic (No GPS Sync needed)
-    if (millis() - lastBuddyTx > BUDDY_TX_INTERVAL && deviceID > 0) {
-        lastBuddyTx = millis();
-        sendBuddyPacket();
-    }
-    #endif
-}
-
-
 void setup() {
     // --- Wake-up Check (Soft-Off Logic) ---
     pinMode(PIN_BUTTON, INPUT_PULLUP);
@@ -803,16 +672,11 @@ void setup() {
     NRF_WDT->TASKS_START = 1; // Start Watchdog
     Serial.println("WDT Initialized (10s)");
     
-    // Load Device ID
-    deviceID = loadBuddyID();
-    if (deviceID == -1) {
-        Serial.println("No Device ID set. Switch to Setup Mode.");
-        currentMode = MODE_SET_ID;
-        deviceID = 1; // Start selection at 1
-    }
-
     // Load Saved Home
     hasSavedHome = loadHomePosition(savedHomeLat, savedHomeLon);
+
+    // Load Breadcrumbs
+    loadBreadcrumbs();
 
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     lastInteractionTime = millis();
@@ -888,22 +752,6 @@ void setup() {
     // Optional: Send UBX config commands here if M10FD needs setup (e.g. rate, constellations)
     // Most M10 modules default to Auto-Baud or 9600/38400.
     
-    loraSPI.setPins(PIN_LORA_MISO, PIN_LORA_SCK, PIN_LORA_MOSI);
-    loraSPI.begin();
-
-    // Init Radio with correct TCXO Voltage (1.6V)
-    int state = radio.begin(LORA_FREQ, LORA_BW, LORA_SF, LORA_CR, LORA_SYNC_WORD, LORA_POWER, LORA_PREAMBLE, LORA_TCXO_VOLTAGE, false);
-    if (state == RADIOLIB_ERR_NONE) {
-        Serial.println("LoRa Init Success!");
-        radio.setDio1Action(setFlag);
-        // Start Listening immediately (P2P)
-        #if !ENABLE_LORAWAN
-        radio.startReceive();
-        #endif
-    } else {
-        Serial.print("LoRa Init Failed, code "); Serial.println(state);
-    }
-    
     startTime = millis();
 
     // Reserve memory for breadcrumbs to prevent fragmentation
@@ -958,86 +806,6 @@ void loop() {
         
         // Check if we are receiving ANY data
         Serial.print(" | Chars: "); Serial.println(gps.charsProcessed());
-    }
-
-    // --- LoRa Async Handler ---
-    if (transmissionFlag) {
-        transmissionFlag = false;
-        if (isLoRaTransmitting) {
-            radio.finishTransmit();
-            isLoRaTransmitting = false;
-            Serial.println("LoRa TX Finished.");
-            
-            // Resume RX if needed (Smart Power handles this, but fallback needs immediate RX)
-            #if !ENABLE_LORAWAN
-            #if ENABLE_SMART_POWER
-            if (!gps.time.isValid()) radio.startReceive();
-            #else
-            radio.startReceive();
-            #endif
-            #else
-            if (!loraWanJoined) radio.startReceive();
-            #endif
-        } else {
-            // RX Done
-            String str;
-            int state = radio.readData(str);
-            if (state == RADIOLIB_ERR_NONE) {
-                Serial.print("RX: "); Serial.println(str);
-                // Parse Buddy Packet: "BUDDY Lat:48.123 Lon:11.123 M:1"
-                if (str.startsWith("BUDDY")) {
-                    int latIdx = str.indexOf("Lat:");
-                    int lonIdx = str.indexOf("Lon:");
-                    int modeIdx = str.indexOf("M:");
-
-                    if (latIdx > 0 && lonIdx > 0) {
-                        String latStr = str.substring(latIdx + 4, str.indexOf(" ", latIdx));
-                        String lonStr = "";
-                        
-                        int endLon = (modeIdx > 0) ? modeIdx - 1 : str.length(); // End of Lon is Space before M: or end
-                        lonStr = str.substring(lonIdx + 4, endLon);
-                        
-                        buddyLat = latStr.toFloat();
-                        buddyLon = lonStr.toFloat();
-                        
-                        // Check Remote Mode
-                        bool remoteIsReturning = false;
-                        if (modeIdx > 0) {
-                             int m = str.substring(modeIdx + 2).toInt();
-                             if (m == 1) remoteIsReturning = true;
-                        }
-
-                        unsigned long now = millis();
-                        bool isNewContact = (now - lastBuddyPacketTime > 300000); // 5 Minutes Timeout
-                        lastBuddyPacketTime = now;
-                        hasBuddy = true;
-
-                        // Vibration Logic
-                        if (isNewContact) {
-                            // First contact after lost signal -> Short Vibe
-                            showFeedback("BUDDY CONNECTED", "", 2000);
-                            triggerVibration(); 
-                        } else if (remoteIsReturning) {
-                             // Buddy wants to go home! -> Alert every update or throttle?
-                             // Let's alert. It's important.
-                             showFeedback("BUDDY RETURNING", "Follow Arrow", 2000);
-                             triggerVibration();
-                        }
-                        // Else: Silent update
-                    }
-                }
-            }
-            // Resume Listening (Smart Power handles this, but fallback needs immediate RX)
-            #if !ENABLE_LORAWAN
-            #if ENABLE_SMART_POWER
-            if (!gps.time.isValid()) radio.startReceive();
-            #else
-            radio.startReceive();
-            #endif
-            #else
-            if (!loraWanJoined) radio.startReceive();
-            #endif
-        }
     }
 
     // --- Compass Calibration Check ---
@@ -1132,11 +900,6 @@ void loop() {
         #endif
     }
 
-    // --- Buddy Protocol (Smart Power / Periodic) ---
-    if (currentMode == MODE_EXPLORE) {
-        manageBuddyProtocol();
-    }
-
     // 3. Button Logic
     bool currentButtonState = digitalRead(PIN_BUTTON);
     unsigned long now = millis();
@@ -1156,17 +919,6 @@ void loop() {
              isLongPressHandled = true;
              currentMode = MODE_SET_ID;
              if (deviceID < 1) deviceID = 1; 
-             triggerVibration(); delay(200); triggerVibration(); delay(200); triggerVibration();
-             showFeedback("SETUP MODE", "Set ID 1-5", FEEDBACK_DURATION_LONG);
-             if (!isDisplayOn) { u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF); isDisplayOn = true; }
-             lastInteractionTime = now;
-        }
-
-        // PANIC SHORTCUT (Hold 3s, no menu active)
-        if (!isLongPressHandled && currentMenuSelection == MENU_NONE && duration > 3000 && currentMode != MODE_SET_ID) {
-             isLongPressHandled = true;
-             // Force Panic / Return Mode
-             if (currentMode == MODE_EXPLORE) {
                  currentMode = MODE_RETURN;
                  // Haptic Feedback
                  triggerVibration(); delay(100); triggerVibration(); delay(100); triggerVibration();
@@ -1201,21 +953,7 @@ void loop() {
                          saveBuddyID(deviceID);
                          showFeedback("ID SAVED", "ID: " + String(deviceID), 3000);
                          currentMode = MODE_EXPLORE;
-                         triggerVibration();
-                     }
-                 }
-                 else if (duration < LONG_PRESS_THRESHOLD) {
-                     // SHORT CLICK
-                     if (currentMode == MODE_CONFIRM_HOME) {
-                         clickCount++;
-                         lastClickTime = now;
-                     } else {
-                         // NORMAL OPERATION -> SINGLE BUTTON MENU navigation
-                         if (currentMenuSelection == MENU_NONE) {
-                             currentMenuSelection = MENU_MODE_SWITCH;
-                         } else {
-                             // Cycle (MODE -> POWER_OFF -> EXIT)
-                             switch(currentMenuSelection) {
+                        switch(currentMenuSelection) {
                                  case MENU_MODE_SWITCH: currentMenuSelection = MENU_POWER_OFF; break;
                                  case MENU_POWER_OFF: currentMenuSelection = MENU_NONE; break;
                                  default: currentMenuSelection = MENU_NONE;
@@ -1262,7 +1000,9 @@ void loop() {
                 hasHome = true;
                 saveHomePosition(homeLat, homeLon);
                 currentMode = MODE_EXPLORE;
-                showFeedback("HOME SET!", "Saved to Flash", FEEDBACK_DURATION_LONG);
+                breadcrumbs.clear();
+                clearBreadcrumbs();
+                showFeedback("HOME SET!", "Train Cleared", FEEDBACK_DURATION_LONG);
             } else if (clickCount >= 2) {
                 // NO: Use Saved Home
                 if (hasSavedHome) {
@@ -1326,10 +1066,18 @@ void loop() {
         }
         
         if (shouldSave) {
-            if (breadcrumbs.size() >= MAX_BREADCRUMBS) breadcrumbs.erase(breadcrumbs.begin());
-            Breadcrumb b; b.lat = gps.location.lat(); b.lon = gps.location.lng();
-            breadcrumbs.push_back(b);
-            Serial.printf("Breadcrumb saved: %f, %f (Total: %d)\n", b.lat, b.lon, breadcrumbs.size());
+            // RAM Buffer Logic (Circular buffer removed for simplicity with append-only file)
+            if (breadcrumbs.size() >= MAX_BREADCRUMBS) {
+                 // Option A: Stop recording
+                 // Option B: Remove oldest? (Hard with append-only file)
+                 // We will just stop adding to RAM to prevent crash.
+                 Serial.println("Breadcrumb Limit Reached!");
+            } else {
+                Breadcrumb b; b.lat = gps.location.lat(); b.lon = gps.location.lng();
+                breadcrumbs.push_back(b);
+                saveBreadcrumb(b.lat, b.lon); // Persist to Flash
+                Serial.printf("Breadcrumb saved: %f, %f (Total: %d)\n", b.lat, b.lon, breadcrumbs.size());
+            }
         }
     }
 
@@ -1420,27 +1168,6 @@ void loop() {
                 return;
             }
 
-            if (currentMode == MODE_SET_ID) {
-                u8g2.setFont(u8g2_font_ncenB12_tr);
-                const char* title = "SETUP DEVICE ID";
-                w = u8g2.getStrWidth(title);
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 25);
-                u8g2.print(title);
-
-                u8g2.setFont(u8g2_font_logisoso42_tn);
-                String idStr = String(deviceID);
-                w = u8g2.getStrWidth(idStr.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 75);
-                u8g2.print(idStr);
-
-                u8g2.setFont(u8g2_font_6x10_tr);
-                u8g2.drawStr(10, 100, "Short: Change (+1)");
-                u8g2.drawStr(10, 115, "Long: Save & Exit");
-                
-                u8g2.sendBuffer();
-                return;
-            }
-
             if (isSOSCountdown) {
                 u8g2.setFont(u8g2_font_ncenB12_tr);
                 const char* title = "SOS MODE IN";
@@ -1469,18 +1196,13 @@ void loop() {
                 w = u8g2.getStrWidth(title);
                 u8g2.setCursor((SCREEN_WIDTH - w) / 2, 20);
                 u8g2.print(title);
-                int secToNext = (LORA_TX_INTERVAL - (millis() - lastLoRaTx)) / 1000;
-                if (secToNext < 0) secToNext = 0;
-                u8g2.setFont(u8g2_font_logisoso42_tn);
-                String cntStr = String(secToNext);
-                w = u8g2.getStrWidth(cntStr.c_str());
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 45);
-                u8g2.print(cntStr);
+                
                 u8g2.setFont(u8g2_font_6x10_tr);
-                const char* sub = "Sending Location...";
+                const char* sub = "Beacon Active";
                 w = u8g2.getStrWidth(sub);
-                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 110);
+                u8g2.setCursor((SCREEN_WIDTH - w) / 2, 60);
                 u8g2.print(sub);
+                
                 u8g2.sendBuffer();
                 return;
             }
@@ -1496,11 +1218,8 @@ void loop() {
             u8g2.setCursor(8, 12);
             u8g2.print(pct); u8g2.print("%");
 
-            // Buddy Indicator (Top Right)
-            if (hasBuddy && (millis() - lastBuddyPacketTime < 300000)) {
-                u8g2.setCursor(100, 12);
-                u8g2.print("BUDDY");
-            } else {
+            // Buddy Indicator REMOVED
+            {
                 #if !USE_BNO085
                 String compStr = "Bad";
                 if (mag == 3) compStr = "Good"; else if (mag == 2) compStr = "Ok"; else if (mag == 1) compStr = "Low";
@@ -1620,37 +1339,7 @@ void loop() {
                 bool showCardinals = (currentMode == MODE_EXPLORE);
                 drawArrow(SCREEN_WIDTH/2, arrowCy, 30, relBearing, showCardinals);
 
-                // Draw Buddy Arrow (Secondary)
-                if (hasBuddy && (millis() - lastBuddyPacketTime < 300000)) {
-                    double buddyBearing = gps.courseTo(gps.location.lat(), gps.location.lng(), buddyLat, buddyLon);
-                    double buddyDist = gps.distanceBetween(gps.location.lat(), gps.location.lng(), buddyLat, buddyLon);
-                    
-                    int relBuddy = (int)buddyBearing - (int)displayedHeading;
-                    if (relBuddy < 0) relBuddy += 360;
-                    
-                    // Draw small hollow triangle for Buddy
-                    float angleRad = (relBuddy - 90) * PI / 180.0;
-                    int r = 25; // Slightly smaller radius
-                    int cx = SCREEN_WIDTH/2;
-                    int cy = arrowCy;
-                    int x1 = cx + r * cos(angleRad);
-                    int y1 = cy + r * sin(angleRad);
-                    int x2 = cx + (r-8) * cos(angleRad + 0.5);
-                    int y2 = cy + (r-8) * sin(angleRad + 0.5);
-                    int x3 = cx + (r-8) * cos(angleRad - 0.5);
-                    int y3 = cy + (r-8) * sin(angleRad - 0.5);
-                    
-                    u8g2.drawLine(x1, y1, x2, y2);
-                    u8g2.drawLine(x2, y2, x3, y3);
-                    u8g2.drawLine(x3, y3, x1, y1);
-                    
-                    // Show Buddy Distance (Top Left)
-                    u8g2.setFont(u8g2_font_5x7_tr);
-                    String bDistStr = "B:" + String((int)buddyDist) + "m";
-                    if (millis() - lastBuddyPacketTime > 60000) bDistStr += "?";
-                    u8g2.setCursor(0, 25);
-                    u8g2.print(bDistStr);
-                }
+                // Draw Buddy Arrow (Secondary) - REMOVED
             } else {
                 if (currentMode == MODE_RETURN && !gps.location.isValid()) {
                     u8g2.setFont(u8g2_font_ncenB10_tr);

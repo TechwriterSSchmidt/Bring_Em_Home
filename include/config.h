@@ -34,13 +34,8 @@
 #define PIN_GPS_WAKE        -1      // Disabled
 #define PIN_GPS_PPS         -1      // Disabled
 
-#define PIN_LORA_NSS        24      // P0.24
-#define PIN_LORA_DIO1       20      // P0.20
-#define PIN_LORA_RST        18      // P0.18 (Corrected for T114 V2)
-#define PIN_LORA_BUSY       17      // P0.17
-#define PIN_LORA_SCK        19      // P0.19
-#define PIN_LORA_MISO       23      // P0.23
-#define PIN_LORA_MOSI       22      // P0.22
+// LoRa Pins - REMOVED
+
 #define PIN_VEXT            21      // P0.21 (Power Control)
 // --- Swapped: GPS on P2 Header (GPIO 8/7) ---
 #define PIN_GPS_RX          8       // P0.08 (GPS RX)
@@ -61,7 +56,7 @@
 
 // --- Power Management ---
 #define BATTERY_CAPACITY_MAH 1500   // Battery Capacity in mAh (Adjust to your battery)
-#define SOS_CURRENT_MA      220     // Estimated current consumption in SOS mode (mA)
+#define SOS_CURRENT_MA      220     // Estimated current consumption in SOS mode (mA) -> Kept for calculation logic usage if any, otherwise unused
 #define CHARGE_CURRENT_MA   500     // Estimated charging current (mA) - usually 500mA for USB
 #define DISPLAY_TIMEOUT     120000  // Display Auto-Off (ms) -> 2 Minutes
 #define BAT_CHECK_INTERVAL_ACTIVE 60000  // Battery check interval when Display ON (ms)
@@ -76,19 +71,13 @@
 #define USER_BIRTH_YEAR     1984         // Optional: Birth Year (Age calculated via GPS)
 #define USER_MED_ALLERGIES  "None"       // Optional: Medication Allergies
 
-// LoRa SOS
-#define LORA_TX_INTERVAL    60000   // SOS Beacon Interval (ms) -> 1 Minute
-#define BUDDY_TX_INTERVAL   30000   // Buddy Tracking Interval (ms) -> 30 Seconds
-#define LORA_FREQ           868.0   // Frequency (EU868)
-#define SOS_MSG_TEXT        "SOS!"  // Custom SOS Message Text
+// LoRa SOS - REMOVED
 
-// Buddy Tracking Configuration
-// #define BUDDY_DEVICE_ID     0       // REMOVED: Now set at runtime and stored in Flash!
-#define ENABLE_SMART_POWER  1       // Enable GPS-synced RX windows to save power
+// Buddy Tracking Configuration - REMOVED
 
 // Navigation
-#define BREADCRUMB_DIST     100.0   // Distance between breadcrumbs (meters)
-#define MAX_BREADCRUMBS     8500    // Max breadcrumbs (Increased for smart tracking)
+#define BREADCRUMB_DIST     50.0    // Distance between breadcrumbs (meters) - Reduced for better precision
+#define MAX_BREADCRUMBS     2000    // Max breadcrumbs (Limited for Filesystem storage)
 #define MIN_SPEED_KPH       1.0     // Minimum speed to record breadcrumb (prevents GPS drift)
 #define MAX_SPEED_KPH       12.0    // Maximum realistic hiking speed (prevents GPS glitches)
 #define BREADCRUMB_TURN_THRESHOLD 45.0 // Degrees change to trigger breadcrumb
