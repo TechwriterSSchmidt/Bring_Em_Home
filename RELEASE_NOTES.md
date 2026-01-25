@@ -108,3 +108,11 @@ This version concludes the migration from the ESP32 architecture to the nRF52840
 - **LoRaWAN Keys:** `include/config.h` contains placeholder keys. These must be updated before enabling Hybrid Mode.
 - **Field Testing:** Range testing of the SF12 LoRa configuration is pending.
 - **Receiver:** Companion "Base Station" software is not yet available.
+
+## [1.0.0] - 2026-01-25
+### Changed
+- **Major Architectural Overhaul**: Transitioned hardware from Heltec T114 to **SuperMini nRF52840**.
+- **Removed**: LoRaWAN and Buddy Tracking features to simplify the project and focus on core navigation reliability.
+- **Persistence**: Implemented **InternalFS** based storage for Breadcrumbs and Home Location. Paths now survive power cycles.
+- **Pinout**: Updated to match SuperMini configuration (P0.xx mapping).
+- **UI**: Streamlined for two-button operation (if available) or single-button fallback.

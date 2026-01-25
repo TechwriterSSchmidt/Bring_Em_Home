@@ -140,8 +140,6 @@ Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel pixels(1, -1, NEO_GRB + NEO_KHZ800);
 #endif
 
-// LoRa State - REMOVED
-
 // U8g2 Display Object (SH1107 128x128 I2C)
 U8G2_SH1107_128X128_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
@@ -247,17 +245,15 @@ void toggleSOS() {
     isFlashlightOn = false; 
     if (!isSOSActive) {
         // digitalWrite(PIN_FLASHLIGHT, LOW);
-        // TODO: Future upgrade: Miniature DC-SSR for power saving. LED removed for now.
-        radio.sleep(); 
-        Serial.println("SOS Deactivated. LoRa Sleeping.");
+        Serial.println("SOS Deactivated.");
     } else {
-        Serial.println("SOS Activated! LoRa Waking up.");
+        Serial.println("SOS Activated!");
     }
 }
 
-// --- HSerial.println("SOS Deactivated.");
-    } else {
-        Serial.println("SOS Activated!
+void enterDeepSleep() {
+    Serial.println("Entering Deep Sleep...");
+    
     #if HAS_VIB_MOTOR
     digitalWrite(PIN_VIB_MOTOR, HIGH); delay(500);
     digitalWrite(PIN_VIB_MOTOR, LOW);  delay(200);
@@ -278,17 +274,12 @@ void toggleSOS() {
     // 2. Display OFF
     u8g2.setPowerSave(DISPLAY_POWER_SAVE_ON);
     
-    // 3. Sensors OFF
-    digitalWrite(PIN_VEXT, LOW);
-    // digitalWrite(PIN_FLASHLIGHT, LOW); // Flashlight removed/disabled logic
-    // TODO: Future upgrade: Miniature DC-SSR for power saving. LED removed for now.
+    // 3. Sensors OFF 
+    // digitalWrite(PIN_VEXT, LOW); // No VEXT on SuperMini
 
-    // 4. LoRa Sleep
-    radio.sleep();
-
-    // 5. Wait for button release (Important!)
-    while(digitalRead(PIN_BUTTON) == LOW) {
-        delay(10);
+    // 4. LoRa Sleep - Removed
+    // radio.sleep();
+ delay(10);
     }
 
     // 6. Configure Wakeup
@@ -619,8 +610,8 @@ void setup() {
     }
 
     // Power on VExt for sensors (GPS, LoRa, OLED)
-    pinMode(PIN_VEXT, OUTPUT);
-    digitalWrite(PIN_VEXT, HIGH);
+    // pinMode(PIN_VEXT, OUTPUT);
+    // digitalWrite(PIN_VEXT, HIGH);
     
     // GPS Power Management (V2 Board)
     #if defined(PIN_GPS_RST) && (PIN_GPS_RST >= 0)
@@ -1221,7 +1212,6 @@ void loop() {
             // Buddy Indicator REMOVED
             {
                 #if !USE_BNO085
-                String compStr = "Bad";
                 if (mag == 3) compStr = "Good"; else if (mag == 2) compStr = "Ok"; else if (mag == 1) compStr = "Low";
                 String compDisp = "C:" + compStr;
                 w = u8g2.getStrWidth(compDisp.c_str());
@@ -1340,7 +1330,6 @@ void loop() {
                 drawArrow(SCREEN_WIDTH/2, arrowCy, 30, relBearing, showCardinals);
 
                 // Draw Buddy Arrow (Secondary) - REMOVED
-            } else {
                 if (currentMode == MODE_RETURN && !gps.location.isValid()) {
                     u8g2.setFont(u8g2_font_ncenB10_tr);
                     u8g2.drawStr(35, 60, "NO GPS");

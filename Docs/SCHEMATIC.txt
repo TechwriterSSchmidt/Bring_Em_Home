@@ -1,69 +1,59 @@
 Bring Em Home - Connection Schematic
 =====================================
-Hardware Platform: Heltec Mesh Node T114 V2 (nRF52840)
-Core: nRF52840 + SX1262 LoRa
+Hardware Platform: SuperMini nRF52840 (Nice!Nano Compatible)
+Core: nRF52840 (No Radio/LoRa)
 
 External Components:
-- 1.5" OLED Display (SH1107 Driver, 128x128, I2C Bus 1)
-- Bosch BNO085 or BNO055 9-Axis Absolute Orientation Sensor (I2C Bus 2)
+- 1.5" OLED Display (SH1107 Driver, 128x128, I2C)
+- Bosch BNO085 9-Axis Absolute Orientation Sensor (I2C)
 - Quescan M10FD (u-blox M10) GNSS (UART)
-- Vibration Motor (Disabled), High Power LED (Disabled), External Button
+- Vibration Motor (Transistor Driver), Buttons, Battery
 
 Connection Diagram:
 ==================
 
                                     ┌─────────────────────────────┐
-                                    │  Heltec Mesh Node T114 V2   │
+                                    │     SuperMini nRF52840      │
                                     │                             │
-    ┌───────────────────────────┐   │ BUS 1 (Internal)            │
-    │  1.5" OLED (SH1107)       │◄──┤ P0.16 (I2C SDA)             │
-    │  (I2C Address 0x3C)       │◄──┤ P0.13 (I2C SCL)             │
+    ┌───────────────────────────┐   │ I2C Bus                     │
+    │  1.5" OLED (SH1107)       │◄──┤ P0.22 (I2C SDA)             │
+    │  (I2C Address 0x3C)       │◄──┤ P0.20 (I2C SCL)             │
     └───────────────────────────┘   │                             │
                                     │                             │
-    ┌───────────────────────────┐   │ BUS 2 (External - Header P2)│
-    │  Bosch BNO085 Compass     │◄──┤ P0.28 (I2C SDA)             │
-    │  (I2C Address 0x4A)       │◄──┤ P0.08 (I2C SCL)             │
-    │  VCC -> VEXT / 3.3V       │◄──┤ P0.21 (VEXT Power Control)  │
+    ┌───────────────────────────┐   │                             │
+    │  Bosch BNO085 Compass     │◄──┤ P0.22 (I2C SDA)             │
+    │  (I2C Address 0x4A)       │◄──┤ P0.20 (I2C SCL)             │
+    │  (Pull-ups required!)     │   │                             │
     └───────────────────────────┘   │                             │
                                     │                             │
-                                    │ GPS Module (Header P2):     │
-                                    │  - RX: P0.08 (Pin 8)        │
-                                    │  - TX: P0.07 (Pin 7)        │
+                                    │ GPS Module (Serial):        │
+                                    │  - RX: P0.08 (Conn to GPS TX)
+                                    │  - TX: P0.06 (Conn to GPS RX)
                                     │                             │
-                                    │ IMU (BNO085) - Alt Pins:    │
-                                    │  - SDA: P0.28 (Pin 28)      │
-                                    │  - SCL: P0.30 (Pin 30)      │
+                                    │ User Interface:             │
+                                    │  - Button 1: P0.15 (Main)   │
+                                    │  - Button 2: P0.24 (Aux)    │
                                     │                             │
-                                    │ OLED (GPS Connector Pins):  │
-                                    │  - SDA: P1.05 (Pin 37)      │
-                                    │  - SCL: P1.07 (Pin 39)      │
+                                    │ Feedback:                   │
+                                    │  - VIB Motor: P0.13         │
+                                    │  - RGB LED: P0.17 (Internal)│
                                     │                             │
-                                    │ Peripherals:                │
-                                    │  - Button: P0.31 (Pin 31)   │
-                                    │  - VIB Motor: P0.13 (Pin 13)│
-                                    │  - WS2812 LED: P0.29 (Pin 29│
-                                    │  - Battery ADC: P0.04 (Pin 4│
-                                    │  - Bat Ctrl: P0.06 (Pin 6)  │
-                                    │                             │
-                                    │ Not Mounted / No Space:     │
-                                    │  - Flashlight LED           │
+                                    │ Power Management:           │
+                                    │  - Battery ADC: P0.04       │
+                                    │  - Charging Stat: P0.05     │
                                     └─────────────────────────────┘
 
-GPIO Pin Summary (Arduino Pin Numbers):
+GPIO Pin Summary:
 =======================================
-Pin Name     | Arduino Pin | nRF Pin | Function
--------------|-------------|---------|------------------------
-PIN_BUTTON   | 42          | P1.10   | External Button (Active Low)
-PIN_NEOPIXEL | 40          | P1.08   | External WS2812 LED Data
-PIN_VEXT     | 21          | P0.21   | Sensor Power Control
-PIN_BAT_ADC  | 4           | P0.04   | Battery Voltage ADC
-PIN_BAT_CTRL | 6           | P0.06   | Battery Divider Control (Active HIGH)
-PIN_I2C_SDA  | 16          | P0.16   | I2C Bus 1 Data (OLED)
-PIN_I2C_SCL  | 13          | P0.13   | I2C Bus 1 Clock (OLED)
-PIN_EXT_SDA  | 28          | P0.28   | I2C Bus 2 Data (Sensors)
-PIN_EXT_SCL  | 8           | P0.08   | I2C Bus 2 Clock (Sensors)
-PIN_GPS_RX   | 37          | P1.05   | GPS UART RX
-PIN_GPS_TX   | 39          | P1.07   | GPS UART TX
-PIN_GPS_RST  | 38          | P1.06   | GPS Reset
-PIN_GPS_WAKE | 34          | P1.02   | GPS Wakeup
-PIN_GPS_PPS  | 36          | P1.04   | GPS PPS
+Pin Name     | nRF Pin | Function
+-------------|---------|------------------------
+PIN_I2C_SDA  | P0.22   | I2C Data (OLED + IMU)
+PIN_I2C_SCL  | P0.20   | I2C Clock (OLED + IMU)
+PIN_GPS_RX   | P0.08   | GPS UART RX (Connects to GPS Module TX)
+PIN_GPS_TX   | P0.06   | GPS UART TX (Connects to GPS Module RX)
+PIN_BUTTON_1 | P0.15   | Main Action Button (Active Low)
+PIN_BUTTON_2 | P0.24   | Secondary Button (Active Low)
+PIN_NEOPIXEL | P0.17   | Internal WS2812 LED Data
+PIN_VIB_MOTOR| P0.13   | Vibration Motor Control (Active High)
+PIN_BAT_VOLT | P0.04   | Battery Voltage ADC (AIN2)
+PIN_BAT_CHG  | P0.05   | Charging Status Input
