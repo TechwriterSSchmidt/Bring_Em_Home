@@ -66,7 +66,7 @@
 // Navigation
 #define BREADCRUMB_DIST     50.0    // Distance between breadcrumbs (meters) - Reduced for better precision
 #define MAX_BREADCRUMBS     2000    // Max breadcrumbs (Limited for Filesystem storage)
-#define MIN_SPEED_KPH       1.0     // Minimum speed to record breadcrumb (prevents GPS drift)
+#define MIN_SPEED_KPH       0.5     // Minimum speed to record breadcrumb (prevents GPS drift)
 #define MAX_SPEED_KPH       12.0    // Maximum realistic hiking speed (prevents GPS glitches)
 #define BREADCRUMB_TURN_THRESHOLD 45.0 // Degrees change to trigger breadcrumb
 #define BREADCRUMB_MIN_DIST_TURN  20.0 // Min distance to check for turn (meters)

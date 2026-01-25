@@ -54,22 +54,41 @@ int lastValidBatteryPct = 50; // Default to 50% to avoid 0% division errors on b
 float estimatedChargeTimeHours = 0; 
 unsigned long chargeStartTime = 0;
 bool hasCompass = false; // Flag to indicate if compass is present
+uint8_t compassAccuracy = 0; // 0=Unreliable, 3=High Accuracy
 
 // Objects
 TinyGPSPlus gps;
 
 // --- FileSystem Helpers ---
-void saveHomePosition(double lat, double lon) {
+// EXPERIMENTAL: Atomic Write Strategy to prevent corruption
+void saveFileSafe(const char* filename, String content) {
     InternalFS.begin();
-    File file = InternalFS.open("/home.txt", FILE_O_WRITE);
+    String tmpName = String(filename) + ".tmp";
+    
+    // 1. Write to temp file
+    if (InternalFS.exists(tmpName.c_str())) InternalFS.remove(tmpName.c_str());
+    
+    File file = InternalFS.open(tmpName.c_str(), FILE_O_WRITE);
     if (file) {
-        file.seek(0);
-        file.print(String(lat, 8));
-        file.print(",");
-        file.print(String(lon, 8));
+        file.print(content);
+        file.flush();
         file.close();
-        Serial.println("Home Saved to Flash!");
+        
+        // 2. Remove old file
+        if (InternalFS.exists(filename)) InternalFS.remove(filename);
+        
+        // 3. Rename temp to actual
+        InternalFS.rename(tmpName.c_str(), filename);
+        // Serial.printf("Atomic Write Success: %s\n", filename);
+    } else {
+        Serial.printf("Atomic Write Failed: %s\n", filename);
     }
+}
+
+void saveHomePosition(double lat, double lon) {
+    String data = String(lat, 8) + "," + String(lon, 8);
+    saveFileSafe("/home.txt", data);
+    Serial.println("Home Saved to Flash (Safe Mode)!");
 }
 
 bool loadHomePosition(double &lat, double &lon) {
@@ -90,9 +109,33 @@ bool loadHomePosition(double &lat, double &lon) {
     return false;
 }
 
+void saveState(int mode, int targetIdx) {
+    // Format: MODE,TARGET_INDEX
+    String data = String(mode) + "," + String(targetIdx);
+    saveFileSafe("/state.txt", data);
+}
+
+void loadState(AppMode &mode, int &targetIdx) {
+    InternalFS.begin();
+    if (InternalFS.exists("/state.txt")) {
+        File file = InternalFS.open("/state.txt", FILE_O_READ);
+        if (file) {
+            String content = file.readString();
+            int comma = content.indexOf(',');
+            if (comma > 0) {
+                mode = (AppMode)content.substring(0, comma).toInt();
+                targetIdx = content.substring(comma + 1).toInt();
+                Serial.printf("State Restored: Mode %d, Target %d\n", mode, targetIdx);
+            }
+            file.close();
+        }
+    }
+}
+
 void clearBreadcrumbs() {
     InternalFS.begin();
     InternalFS.remove("/crumbs.dat");
+    InternalFS.remove("/state.txt"); // Clear state too
     Serial.println("Breadcrumbs cleared from Flash");
 }
 
@@ -104,8 +147,9 @@ void saveBreadcrumb(double lat, double lon) {
         b.lat = lat;
         b.lon = lon;
         file.write((uint8_t*)&b, sizeof(Breadcrumb));
+        file.flush(); // Ensure data hits flash
         file.close();
-        // Serial.println("Crumb Saved"); // Commented out to reduce serial spam
+        // Serial.println("Crumb Saved"); 
     }
 }
 
@@ -669,6 +713,14 @@ void setup() {
     // Load Breadcrumbs
     loadBreadcrumbs();
 
+    // Resume State (Crash Recovery)
+    loadState(currentMode, targetBreadcrumbIndex);
+    if (currentMode == MODE_RETURN) {
+        Serial.println("Resuming RETURN MODE after reset");
+        // Ensure valid target index
+        if (targetBreadcrumbIndex < 0 && !breadcrumbs.empty()) targetBreadcrumbIndex = breadcrumbs.size() - 1;
+    }
+
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     lastInteractionTime = millis();
 
@@ -878,6 +930,7 @@ void loop() {
                 
                 currentHeading = (yaw * 180.0 / PI);
                 if (currentHeading < 0) currentHeading += 360.0;
+                compassAccuracy = sensorValue.status;
             }
         }
         // uint8_t mag = 3; // BNO085 handles calibration internally, assume good
@@ -888,11 +941,26 @@ void loop() {
 
         uint8_t sys, gyro, accel, mag = 0;
         bno.getCalibration(&sys, &gyro, &accel, &mag);
+        compassAccuracy = sys;
         #endif
     }
 
-    // 3. Button Logic
-    bool currentButtonState = digitalRead(PIN_BUTTON);
+    // 3. Button Logic (Debounced)
+    bool rawReading = digitalRead(PIN_BUTTON);
+    static bool lastRawReading = HIGH;
+    static unsigned long lastDebounceTime = 0;
+    static bool debouncedButtonState = HIGH;
+
+    if (rawReading != lastRawReading) {
+        lastDebounceTime = millis();
+    }
+    lastRawReading = rawReading;
+
+    if ((millis() - lastDebounceTime) > 50) {
+        debouncedButtonState = rawReading;
+    }
+
+    bool currentButtonState = debouncedButtonState;
     unsigned long now = millis();
 
     // Button Pressed (Falling Edge)
@@ -912,6 +980,7 @@ void loop() {
              if (currentMode == MODE_RETURN) {
                  // Deactivate -> Go to Explore
                  currentMode = MODE_EXPLORE;
+                 saveState(currentMode, targetBreadcrumbIndex);
                  triggerVibration();
                  showFeedback("EXPLORE MODE", "Tracking...", FEEDBACK_DURATION_LONG);
              } else {
@@ -925,6 +994,7 @@ void loop() {
                  if (!breadcrumbs.empty()) {
                       targetBreadcrumbIndex = breadcrumbs.size() - 1;
                  }
+                 saveState(currentMode, targetBreadcrumbIndex);
              }
 
              if (!isDisplayOn) { u8g2.setPowerSave(DISPLAY_POWER_SAVE_OFF); isDisplayOn = true; }
@@ -1051,7 +1121,8 @@ void loop() {
     }
 
     // 5. Breadcrumb Logic
-    if (currentMode == MODE_EXPLORE && gps.location.isValid()) {
+    bool isGoodSignal = gps.hdop.hdop() < 2.5;
+    if (currentMode == MODE_EXPLORE && gps.location.isValid() && isGoodSignal) {
         bool shouldSave = false;
         double speed = gps.speed.kmph();
         if (speed > MIN_SPEED_KPH && speed < MAX_SPEED_KPH) {
@@ -1098,6 +1169,7 @@ void loop() {
             if (distToTarget < BREADCRUMB_REACH_DIST) {
                 targetBreadcrumbIndex--;
                 triggerVibration();
+                saveState(currentMode, targetBreadcrumbIndex); 
             }
         }
     }
@@ -1347,6 +1419,12 @@ void loop() {
                 int arrowCy = 64;
                 bool showCardinals = (currentMode == MODE_EXPLORE);
                 drawArrow(SCREEN_WIDTH/2, arrowCy, 30, relBearing, showCardinals);
+
+                // Compass Low Accuracy Warning
+                if (hasCompass && compassAccuracy < 2) {
+                    u8g2.setFont(u8g2_font_5x7_tr);
+                    u8g2.drawStr(110, 8, "CAL"); // Top Right
+                }
 
                 // Draw Buddy Arrow (Secondary) - REMOVED
                 if (currentMode == MODE_RETURN && !gps.location.isValid()) {
