@@ -371,21 +371,27 @@ void powerOff() {
 }
 
 float readBatteryVoltage() {
-    // 1. Enable Voltage Divider (P0.06 HIGH)
+    // Seeed Xiao nRF52840 Specific Logic
+    // P0.14 (PIN_BAT_READ_CTRL) must be LOW to ENABLE reading (Active Low)
     pinMode(PIN_BAT_READ_CTRL, OUTPUT);
-    digitalWrite(PIN_BAT_READ_CTRL, HIGH);
-    delay(10); // Wait for stabilization
+    digitalWrite(PIN_BAT_READ_CTRL, LOW); 
+    delay(10); // Stabilization
 
-    // 2. Read ADC
+    // Read 12-bit ADC (0-4095) default for nRF52 Arduino
+    analogReadResolution(12);
     int raw = analogRead(PIN_BAT_ADC);
     
-    // 3. Disable Voltage Divider (Save Power)
-    digitalWrite(PIN_BAT_READ_CTRL, LOW);
+    // Disable (High Impedance / High to turn off FET?)
+    // Xiao Schematic: P0.14 drives Gate of PMOS. Low -> Conducts. High -> Off.
+    digitalWrite(PIN_BAT_READ_CTRL, HIGH); 
 
-    // ADC Resolution default is 10-bit (0-1023) in Arduino nRF52
-    // Reference is usually 3.6V internal (scaled)
-    // Divider is 1/2 (100k+100k) -> Multiplier 2.0
-    return (raw / 1023.0) * 3.6 * 2.0;
+    // Xiao Divider: 1M + 510K. Ratio = (1000+510)/510 = 2.9607
+    // Reference 3.3V (VDD) usually? Or Internal 3.0/3.6?
+    // Seeed Wiki says: Vcc = 3.3V. Resolution 1024 or 4096.
+    // Formula from Wiki: Voltage = (raw / 4095.0) * 3.3 * 2.96 * 1.03 (Calibration)
+    
+    // Let's use 3.3V ref and 12-bit (4095)
+    return (raw / 4095.0) * 3.3 * 2.96078;
 }
 
 int getBatteryPercent() {

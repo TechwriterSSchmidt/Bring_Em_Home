@@ -15,36 +15,37 @@
 #define HAS_SOS_LED         0       // 0 = Disabled
 #define HAS_RGB_LED         1       // 1 = NeoPixel/WS2812 connected
 
-// --- Hardware Pins (SuperMini nRF52840) ---
+// --- Hardware Pins (Seeed Xiao nRF52840) ---
 
 // I2C (OLED + BNO085)
-#define PIN_I2C_SDA      22  // P0.22
-#define PIN_I2C_SCL      20  // P0.20
+#define PIN_I2C_SDA      D4  // P0.04 (SDA)
+#define PIN_I2C_SCL      D5  // P0.05 (SCL)
 
-// External I2C (Same pins for now if sharing bus, or define separate if using softwire/second hardware)
-// For SuperMini, typically only one I2C is exposed easily. We map to same pins.
+// External I2C (Same pins for now if sharing bus)
 #define PIN_EXT_SDA      PIN_I2C_SDA
 #define PIN_EXT_SCL      PIN_I2C_SCL
 
-// GPS Serial
-#define PIN_GPS_RX       8   // P0.08 (Conn to GPS TX)
-#define PIN_GPS_TX       6   // P0.06 (Conn to GPS RX)
+// GPS Serial (Xiao UART)
+#define PIN_GPS_RX       D7  // P1.12 (RX) -> Connect to GPS TX
+#define PIN_GPS_TX       D6  // P1.11 (TX) -> Connect to GPS RX
 
 // User Interface
-#define PIN_BUTTON_1     15  // P0.15 (Long Press: Home, Short: Waypoint)
-#define PIN_BUTTON       PIN_BUTTON_1 // Mapping for legacy code convenience
+#define PIN_BUTTON_1     D0  // P0.02
+#define PIN_BUTTON       PIN_BUTTON_1 
 
 // Feedback (Outputs)
-#define PIN_VIB_MOTOR    13  // P0.13 (Vibration Motor)
-#undef PIN_NEOPIXEL          // Remove default definition from variant.h
-#define PIN_NEOPIXEL     29  // P0.29 (External WS2812 Data)
+#define PIN_VIB_MOTOR    D1  // P0.03
+#undef PIN_NEOPIXEL          // Remove default definition
+#define PIN_NEOPIXEL     D2  // P0.28
 
 // Power Management
-#define PIN_BAT_VOLT     4   // P0.04 (AIN2)
-// #define PIN_BAT_CHARGE   5   // P0.05 (Charging Status) - Disabled if not used
-// Mapping for code compatibility
-#define PIN_BAT_ADC      PIN_BAT_VOLT
-#define PIN_BAT_READ_CTRL -1 // Not used on SuperMini
+// Xiao nRF52840 reads battery via P0.31 (AIN7) using internal divider active-high
+#define PIN_BAT_READ     P0_31 // AIN7
+#define PIN_BAT_CHARGE   P0_17 // Status Pin (Low = Charging, High = Done/No Power)
+
+// Mapping for compatibility
+#define PIN_BAT_ADC      PIN_BAT_READ
+#define PIN_BAT_READ_CTRL P0_14 // Active High to enable battery read divider
 
 // Enable/Disable Features
 // #define HAS_RGB_LED      1 // Defined in code via PIN_NEOPIXEL check, but can be explicit here
